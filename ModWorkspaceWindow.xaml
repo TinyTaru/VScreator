@@ -149,14 +149,29 @@
                                        TextAlignment="Center"
                                        TextWrapping="Wrap"/>
 
-                            <TextBlock x:Name="ResourcesTabMessage"
-                                       Text="Click 'Import Texture' to add texture resources to your mod."
-                                       Foreground="#cccccc"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center"
-                                       TextAlignment="Center"
-                                       TextWrapping="Wrap"
-                                       Visibility="Collapsed"/>
+                            <ScrollViewer x:Name="ResourcesTabContent"
+                                          Visibility="Collapsed">
+                                <StackPanel Margin="20">
+                                    <!-- Item Textures Section -->
+                                    <TextBlock x:Name="ItemTexturesHeader"
+                                               Text="Item Textures:"
+                                               Style="{StaticResource WorkspaceLabelStyle}"
+                                               Margin="0,0,0,15"/>
+
+                                    <WrapPanel x:Name="ItemTexturesPanel"
+                                               Orientation="Horizontal"
+                                               Margin="0,0,0,30"/>
+
+                                    <!-- Block Textures Section -->
+                                    <TextBlock x:Name="BlockTexturesHeader"
+                                               Text="Block Textures:"
+                                               Style="{StaticResource WorkspaceLabelStyle}"
+                                               Margin="0,0,0,15"/>
+
+                                    <WrapPanel x:Name="BlockTexturesPanel"
+                                               Orientation="Horizontal"/>
+                                </StackPanel>
+                            </ScrollViewer>
                         </Grid>
                     </Border>
                 </Grid>

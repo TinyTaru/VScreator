@@ -1,4 +1,7 @@
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using Microsoft.Win32;
 using System.IO;
 
@@ -73,9 +76,9 @@ public partial class ModWorkspaceWindow : Window
             ContentTabButtons.Visibility = Visibility.Visible;
             ResourcesTabButtons.Visibility = Visibility.Collapsed;
 
-            // Show content tab message, hide resources tab message
+            // Show content tab message, hide resources tab content
             ContentTabMessage.Visibility = Visibility.Visible;
-            ResourcesTabMessage.Visibility = Visibility.Collapsed;
+            ResourcesTabContent.Visibility = Visibility.Collapsed;
         }
         else if (tabName == "Resources")
         {
@@ -83,9 +86,12 @@ public partial class ModWorkspaceWindow : Window
             ContentTabButtons.Visibility = Visibility.Collapsed;
             ResourcesTabButtons.Visibility = Visibility.Visible;
 
-            // Hide content tab message, show resources tab message
+            // Hide content tab message, show resources tab content
             ContentTabMessage.Visibility = Visibility.Collapsed;
-            ResourcesTabMessage.Visibility = Visibility.Visible;
+            ResourcesTabContent.Visibility = Visibility.Visible;
+
+            // Load textures when switching to Resources tab
+            LoadTextures();
         }
     }
 
@@ -141,6 +147,12 @@ public partial class ModWorkspaceWindow : Window
                     "Import Successful",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
+
+                // Refresh texture gallery if we're currently in Resources tab
+                if (_currentTab == "Resources")
+                {
+                    LoadTextures();
+                }
             }
         }
         catch (Exception ex)
@@ -159,5 +171,104 @@ public partial class ModWorkspaceWindow : Window
         string exeDirectory = AppDomain.CurrentDomain.BaseDirectory;
         string modsDirectory = Path.Combine(exeDirectory, "mods");
         return Path.Combine(modsDirectory, _modId);
+    }
+
+    private void LoadTextures()
+    {
+        try
+        {
+            // Clear existing textures
+            ItemTexturesPanel.Children.Clear();
+            BlockTexturesPanel.Children.Clear();
+
+            string modDirectory = GetModDirectory();
+            string assetsPath = Path.Combine(modDirectory, "assets", _modId, "textures");
+
+            if (!Directory.Exists(assetsPath))
+            {
+                return; // No assets folder yet
+            }
+
+            // Load item textures
+            string itemTexturesPath = Path.Combine(assetsPath, "item");
+            if (Directory.Exists(itemTexturesPath))
+            {
+                LoadTexturesFromFolder(itemTexturesPath, ItemTexturesPanel, "item");
+            }
+
+            // Load block textures
+            string blockTexturesPath = Path.Combine(assetsPath, "block");
+            if (Directory.Exists(blockTexturesPath))
+            {
+                LoadTexturesFromFolder(blockTexturesPath, BlockTexturesPanel, "block");
+            }
+
+            // Update headers visibility based on content
+            ItemTexturesHeader.Visibility = ItemTexturesPanel.Children.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+            BlockTexturesHeader.Visibility = BlockTexturesPanel.Children.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading textures: {ex.Message}", "Load Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void LoadTexturesFromFolder(string folderPath, WrapPanel targetPanel, string textureType)
+    {
+        string[] textureFiles = Directory.GetFiles(folderPath, "*.png");
+
+        foreach (string textureFile in textureFiles)
+        {
+            string fileName = Path.GetFileNameWithoutExtension(textureFile);
+
+            // Create texture display container
+            StackPanel textureContainer = new StackPanel
+            {
+                Margin = new Thickness(10),
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+
+            // Create image control
+            Image textureImage = new Image
+            {
+                Width = 64,
+                Height = 64,
+                Margin = new Thickness(0, 0, 0, 5),
+                Stretch = Stretch.Uniform
+            };
+
+            try
+            {
+                // Load the image
+                BitmapImage bitmap = new BitmapImage();
+                bitmap.BeginInit();
+                bitmap.UriSource = new Uri(textureFile, UriKind.Absolute);
+                bitmap.EndInit();
+
+                textureImage.Source = bitmap;
+            }
+            catch (Exception)
+            {
+                // If image loading fails, show a placeholder
+                textureImage.Source = null;
+            }
+
+            // Create label with texture name
+            TextBlock textureLabel = new TextBlock
+            {
+                Text = fileName,
+                Foreground = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#cccccc")),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                TextWrapping = TextWrapping.Wrap,
+                MaxWidth = 80
+            };
+
+            // Add image and label to container
+            textureContainer.Children.Add(textureImage);
+            textureContainer.Children.Add(textureLabel);
+
+            // Add container to panel
+            targetPanel.Children.Add(textureContainer);
+        }
     }
 }
