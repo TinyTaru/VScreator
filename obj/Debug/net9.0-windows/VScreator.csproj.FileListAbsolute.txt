@@ -25,3 +25,5 @@ c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\ModWorkspaceWindow.baml
 c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\TextureTypeSelectionWindow.g.cs
 c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\TextureTypeSelectionWindow.baml
 c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\VScreator.sourcelink.json
+c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\ItemCreationWindow.g.cs
+c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\ItemCreationWindow.baml

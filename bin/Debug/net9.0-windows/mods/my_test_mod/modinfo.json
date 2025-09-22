@@ -1,0 +1,10 @@
+{
+  "Type": "content",
+  "ModId": "my_test_mod",
+  "Name": "My Test Mod",
+  "Authors": [
+    "Tester"
+  ],
+  "Description": "A cool mod",
+  "Version": "1.0.0"
+}

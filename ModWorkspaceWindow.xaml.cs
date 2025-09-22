@@ -28,8 +28,9 @@ public partial class ModWorkspaceWindow : Window
 
     private void AddItemButton_Click(object sender, RoutedEventArgs e)
     {
-        MessageBox.Show($"Add Item functionality will be implemented here.\n\nMod: {_modName}\nID: {_modId}",
-                        "Add Item", MessageBoxButton.OK, MessageBoxImage.Information);
+        // Open the item creation window
+        var itemCreationWindow = new ItemCreationWindow(_modId, _modName);
+        itemCreationWindow.ShowDialog();
     }
 
     private void AddBlockButton_Click(object sender, RoutedEventArgs e)

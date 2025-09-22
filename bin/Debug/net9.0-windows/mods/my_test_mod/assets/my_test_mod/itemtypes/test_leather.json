@@ -1,0 +1,11 @@
+{
+  "Code": "test_leather",
+  "CreativeInventory": {
+    "General": [
+      "*"
+    ]
+  },
+  "Texture": {
+    "Base": "item/mushroom_leather"
+  }
+}
