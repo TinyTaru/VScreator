@@ -16,6 +16,11 @@ public partial class ModWorkspaceWindow : Window
     private readonly string _modName;
     private string _currentTab = "Content";
 
+    // Texture selection tracking
+    private string _selectedTexturePath = null;
+    private string _selectedTextureType = null; // "item" or "block"
+    private Border _selectedTextureBorder = null;
+
     public ModWorkspaceWindow(string modId, string modName)
     {
         InitializeComponent();
@@ -94,6 +99,85 @@ public partial class ModWorkspaceWindow : Window
             // Load textures when switching to Resources tab
             LoadTextures();
         }
+    }
+
+    private void DeleteTextureButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            // Check if a texture is selected
+            if (string.IsNullOrEmpty(_selectedTexturePath))
+            {
+                MessageBox.Show(
+                    "Please select a texture first by clicking on it.\n\n" +
+                    "Selected textures will be highlighted with a yellow border.",
+                    "No Texture Selected",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
+            // Get texture information
+            string fileName = Path.GetFileName(_selectedTexturePath);
+            string textureType = _selectedTextureType == "item" ? "Item" : "Block";
+
+            // Show confirmation dialog
+            MessageBoxResult result = MessageBox.Show(
+                $"Are you sure you want to delete the {textureType.ToLower()} texture '{fileName}'?\n\n" +
+                "This action cannot be undone.",
+                "Confirm Deletion",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question,
+                MessageBoxResult.No);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                // Delete the texture file
+                File.Delete(_selectedTexturePath);
+
+                // Show success message
+                MessageBox.Show(
+                    $"Texture '{fileName}' has been deleted successfully!\n\n" +
+                    $"Type: {textureType}\n" +
+                    $"Mod: {_modName}",
+                    "Texture Deleted",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+
+                // Clear selection
+                ClearTextureSelection();
+
+                // Refresh texture gallery
+                LoadTextures();
+
+                // Update delete button tooltip
+                DeleteTextureButton.ToolTip = "Delete selected texture";
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"An error occurred while deleting the texture:\n\n{ex.Message}",
+                "Delete Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+    }
+
+    private void ClearTextureSelection()
+    {
+        // Clear visual selection
+        if (_selectedTextureBorder != null)
+        {
+            _selectedTextureBorder.BorderBrush = new SolidColorBrush(Colors.Transparent);
+            _selectedTextureBorder.BorderThickness = new Thickness(0);
+            _selectedTextureBorder.Background = new SolidColorBrush(Colors.Transparent);
+        }
+
+        // Clear selection data
+        _selectedTexturePath = null;
+        _selectedTextureType = null;
+        _selectedTextureBorder = null;
     }
 
     private void ImportTextureButton_Click(object sender, RoutedEventArgs e)
@@ -222,11 +306,21 @@ public partial class ModWorkspaceWindow : Window
         {
             string fileName = Path.GetFileNameWithoutExtension(textureFile);
 
+            // Create border for selection visual feedback
+            Border textureBorder = new Border
+            {
+                Margin = new Thickness(10),
+                CornerRadius = new CornerRadius(5),
+                Cursor = System.Windows.Input.Cursors.Hand,
+                Tag = textureFile, // Store the full path for deletion
+                Background = new SolidColorBrush(Colors.Transparent)
+            };
+
             // Create texture display container
             StackPanel textureContainer = new StackPanel
             {
-                Margin = new Thickness(10),
-                HorizontalAlignment = HorizontalAlignment.Center
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Background = new SolidColorBrush(Colors.Transparent)
             };
 
             // Create image control
@@ -234,7 +328,7 @@ public partial class ModWorkspaceWindow : Window
             {
                 Width = 64,
                 Height = 64,
-                Margin = new Thickness(0, 0, 0, 5),
+                Margin = new Thickness(5),
                 Stretch = Stretch.Uniform
             };
 
@@ -261,15 +355,49 @@ public partial class ModWorkspaceWindow : Window
                 Foreground = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#cccccc")),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 TextWrapping = TextWrapping.Wrap,
-                MaxWidth = 80
+                MaxWidth = 80,
+                Margin = new Thickness(5)
             };
 
             // Add image and label to container
             textureContainer.Children.Add(textureImage);
             textureContainer.Children.Add(textureLabel);
 
+            // Add container to border
+            textureBorder.Child = textureContainer;
+
+            // Add click event handler for texture selection
+            textureBorder.MouseLeftButtonUp += (sender, e) =>
+            {
+                SelectTexture(textureFile, textureType, textureBorder);
+            };
+
             // Add container to panel
-            targetPanel.Children.Add(textureContainer);
+            targetPanel.Children.Add(textureBorder);
         }
+    }
+
+    private void SelectTexture(string texturePath, string textureType, Border clickedBorder)
+    {
+        // Clear previous selection
+        if (_selectedTextureBorder != null)
+        {
+            _selectedTextureBorder.BorderBrush = new SolidColorBrush(Colors.Transparent);
+            _selectedTextureBorder.Background = new SolidColorBrush(Colors.Transparent);
+        }
+
+        // Set new selection
+        _selectedTexturePath = texturePath;
+        _selectedTextureType = textureType;
+        _selectedTextureBorder = clickedBorder;
+
+        // Visual feedback for selected texture
+        clickedBorder.BorderBrush = new SolidColorBrush(Colors.Yellow);
+        clickedBorder.BorderThickness = new Thickness(2);
+        clickedBorder.Background = new SolidColorBrush(Color.FromArgb(50, 255, 255, 0)); // Semi-transparent yellow background
+
+        // Update delete button tooltip
+        string fileName = Path.GetFileNameWithoutExtension(texturePath);
+        DeleteTextureButton.ToolTip = $"Delete texture: {fileName}";
     }
 }

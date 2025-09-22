@@ -28,8 +28,19 @@ public partial class ModCreationWindow : Window
 
         try
         {
-            // Get the directory where the executable is located
+            // Get the project root directory by finding where the executable is located
+            // and navigating up to the project root
             string exeDirectory = AppDomain.CurrentDomain.BaseDirectory;
+            string projectRoot = exeDirectory;
+
+            // Navigate up from bin/Debug/net9.0-windows/ to project root directory
+            string projectRootCandidate = Path.GetFullPath(Path.Combine(exeDirectory, "..", "..", ".."));
+
+            if (Directory.Exists(projectRootCandidate) && File.Exists(Path.Combine(projectRootCandidate, "VScreator.csproj")))
+            {
+                projectRoot = projectRootCandidate;
+            }
+
             string modsDirectory = Path.Combine(exeDirectory, "mods");
 
             // Create mods directory if it doesn't exist
@@ -63,6 +74,16 @@ public partial class ModCreationWindow : Window
 
             string modInfoPath = Path.Combine(modDirectory, "modinfo.json");
             File.WriteAllText(modInfoPath, jsonContent);
+
+            // Copy modicon.png to the mod directory
+            string resourcesDirectory = Path.Combine(projectRoot, "Resources");
+            string sourceModiconPath = Path.Combine(resourcesDirectory, "modicon.png");
+            string destinationModiconPath = Path.Combine(modDirectory, "modicon.png");
+
+            if (File.Exists(sourceModiconPath))
+            {
+                File.Copy(sourceModiconPath, destinationModiconPath, true);
+            }
 
             MessageBox.Show($"Mod '{ModNameTextBox.Text}' has been created successfully!\n\n" +
                           $"Location: {modDirectory}\n" +
