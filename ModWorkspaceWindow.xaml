@@ -141,6 +141,9 @@
                     <StackPanel x:Name="ResourcesTabButtons" Visibility="Collapsed">
                         <Button Content="Import Texture" Style="{StaticResource SidebarButtonStyle}"
                                 Click="ImportTextureButton_Click"/>
+
+                        <Button Content="Import Shape" Style="{StaticResource SidebarButtonStyle}"
+                                Margin="0,10,0,0" Click="ImportModelButton_Click"/>
                     </StackPanel>
 
                     <Button Content="Back to Menu" Style="{StaticResource SidebarButtonStyle}"
@@ -160,7 +163,7 @@
                     <Button x:Name="DeleteTextureButton"
                             Style="{StaticResource DeleteButtonStyle}"
                             Click="DeleteTextureButton_Click"
-                            ToolTip="Delete selected texture"/>
+                            ToolTip="Delete selected texture or shape"/>
 
                     <!-- Tab Selection -->
                     <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,20">
@@ -202,6 +205,25 @@
                                                Margin="0,0,0,15"/>
 
                                     <WrapPanel x:Name="BlockTexturesPanel"
+                                               Orientation="Horizontal"/>
+
+                                    <!-- Item Shapes Section -->
+                                    <TextBlock x:Name="ItemModelsHeader"
+                                               Text="Item Shapes:"
+                                               Style="{StaticResource WorkspaceLabelStyle}"
+                                               Margin="0,30,0,15"/>
+
+                                    <WrapPanel x:Name="ItemModelsPanel"
+                                               Orientation="Horizontal"
+                                               Margin="0,0,0,30"/>
+
+                                    <!-- Block Shapes Section -->
+                                    <TextBlock x:Name="BlockModelsHeader"
+                                               Text="Block Shapes:"
+                                               Style="{StaticResource WorkspaceLabelStyle}"
+                                               Margin="0,0,0,15"/>
+
+                                    <WrapPanel x:Name="BlockModelsPanel"
                                                Orientation="Horizontal"/>
                                 </StackPanel>
                             </ScrollViewer>

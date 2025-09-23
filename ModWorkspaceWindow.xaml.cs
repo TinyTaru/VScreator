@@ -21,6 +21,11 @@ public partial class ModWorkspaceWindow : Window
     private string _selectedTextureType = null; // "item" or "block"
     private Border _selectedTextureBorder = null;
 
+    // Model selection tracking
+    private string _selectedModelPath = null;
+    private string _selectedModelType = null; // "item" or "block"
+    private Border _selectedModelBorder = null;
+
     public ModWorkspaceWindow(string modId, string modName)
     {
         InitializeComponent();
@@ -96,8 +101,9 @@ public partial class ModWorkspaceWindow : Window
             ContentTabMessage.Visibility = Visibility.Collapsed;
             ResourcesTabContent.Visibility = Visibility.Visible;
 
-            // Load textures when switching to Resources tab
+            // Load textures and models when switching to Resources tab
             LoadTextures();
+            LoadModels();
         }
     }
 
@@ -105,25 +111,43 @@ public partial class ModWorkspaceWindow : Window
     {
         try
         {
-            // Check if a texture is selected
-            if (string.IsNullOrEmpty(_selectedTexturePath))
+            // Check if a texture or model is selected
+            if (string.IsNullOrEmpty(_selectedTexturePath) && string.IsNullOrEmpty(_selectedModelPath))
             {
                 MessageBox.Show(
-                    "Please select a texture first by clicking on it.\n\n" +
-                    "Selected textures will be highlighted with a yellow border.",
-                    "No Texture Selected",
+                    "Please select a texture or model first by clicking on it.\n\n" +
+                    "Selected items will be highlighted with a yellow border.",
+                    "No Item Selected",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
                 return;
             }
 
-            // Get texture information
-            string fileName = Path.GetFileName(_selectedTexturePath);
-            string textureType = _selectedTextureType == "item" ? "Item" : "Block";
+            string selectedPath, selectedType, itemType, itemTypeName;
+
+            if (!string.IsNullOrEmpty(_selectedTexturePath))
+            {
+                // Handle texture deletion
+                selectedPath = _selectedTexturePath;
+                selectedType = _selectedTextureType;
+                itemType = "texture";
+                itemTypeName = selectedType == "item" ? "Item" : "Block";
+            }
+            else
+            {
+                // Handle shape deletion
+                selectedPath = _selectedModelPath;
+                selectedType = _selectedModelType;
+                itemType = "shape";
+                itemTypeName = selectedType == "item" ? "Item" : "Block";
+            }
+
+            // Get item information
+            string fileName = Path.GetFileNameWithoutExtension(selectedPath);
 
             // Show confirmation dialog
             MessageBoxResult result = MessageBox.Show(
-                $"Are you sure you want to delete the {textureType.ToLower()} texture '{fileName}'?\n\n" +
+                $"Are you sure you want to delete the {itemTypeName.ToLower()} {itemType} '{fileName}'?\n\n" +
                 "This action cannot be undone.",
                 "Confirm Deletion",
                 MessageBoxButton.YesNo,
@@ -132,32 +156,34 @@ public partial class ModWorkspaceWindow : Window
 
             if (result == MessageBoxResult.Yes)
             {
-                // Delete the texture file
-                File.Delete(_selectedTexturePath);
+                // Delete the file
+                File.Delete(selectedPath);
 
                 // Show success message
                 MessageBox.Show(
-                    $"Texture '{fileName}' has been deleted successfully!\n\n" +
-                    $"Type: {textureType}\n" +
+                    $"{itemType} '{fileName}' has been deleted successfully!\n\n" +
+                    $"Type: {itemTypeName}\n" +
                     $"Mod: {_modName}",
-                    "Texture Deleted",
+                    $"{itemType} Deleted",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
 
-                // Clear selection
+                // Clear selections
                 ClearTextureSelection();
+                ClearModelSelection();
 
-                // Refresh texture gallery
+                // Refresh galleries
                 LoadTextures();
+                LoadModels();
 
                 // Update delete button tooltip
-                DeleteTextureButton.ToolTip = "Delete selected texture";
+                DeleteTextureButton.ToolTip = "Delete selected texture or model";
             }
         }
         catch (Exception ex)
         {
             MessageBox.Show(
-                $"An error occurred while deleting the texture:\n\n{ex.Message}",
+                $"An error occurred while deleting the item:\n\n{ex.Message}",
                 "Delete Error",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
@@ -178,6 +204,22 @@ public partial class ModWorkspaceWindow : Window
         _selectedTexturePath = null;
         _selectedTextureType = null;
         _selectedTextureBorder = null;
+    }
+
+    private void ClearModelSelection()
+    {
+        // Clear visual selection
+        if (_selectedModelBorder != null)
+        {
+            _selectedModelBorder.BorderBrush = new SolidColorBrush(Colors.Transparent);
+            _selectedModelBorder.BorderThickness = new Thickness(0);
+            _selectedModelBorder.Background = new SolidColorBrush(Colors.Transparent);
+        }
+
+        // Clear selection data
+        _selectedModelPath = null;
+        _selectedModelType = null;
+        _selectedModelBorder = null;
     }
 
     private void ImportTextureButton_Click(object sender, RoutedEventArgs e)
@@ -250,6 +292,77 @@ public partial class ModWorkspaceWindow : Window
         }
     }
 
+    private void ImportModelButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            // Open file dialog to select JSON model file
+            OpenFileDialog openFileDialog = new OpenFileDialog
+            {
+                Title = "Select Model File",
+                Filter = "JSON Files (*.json)|*.json",
+                CheckFileExists = true,
+                CheckPathExists = true
+            };
+
+            if (openFileDialog.ShowDialog() == true)
+            {
+                string selectedFilePath = openFileDialog.FileName;
+
+                // Ask user for shape type using custom dialog
+                var textureTypeDialog = new TextureTypeSelectionWindow();
+                textureTypeDialog.Title = "Select Shape Type";
+                var dialogResult = textureTypeDialog.ShowDialog();
+
+                if (dialogResult != true)
+                {
+                    return; // User cancelled
+                }
+
+                bool isBlockModel = (textureTypeDialog.SelectedTextureType == "block");
+
+                // Create folder structure
+                string modDirectory = GetModDirectory();
+                string modelType = isBlockModel ? "block" : "item";
+                string modelPath = Path.Combine(modDirectory, "assets", _modId, "shapes", modelType);
+
+                // Create directories if they don't exist
+                Directory.CreateDirectory(modelPath);
+
+                // Copy file to destination
+                string fileName = Path.GetFileName(selectedFilePath);
+                string destinationPath = Path.Combine(modelPath, fileName);
+
+                File.Copy(selectedFilePath, destinationPath, true);
+
+                // Show success message
+                string shapeTypeName = isBlockModel ? "block" : "item";
+                MessageBox.Show(
+                    $"Shape '{fileName}' has been imported successfully!\n\n" +
+                    $"Type: {shapeTypeName}\n" +
+                    $"Location: {modelPath}\n" +
+                    $"Mod: {_modName}",
+                    "Import Successful",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+
+                // Refresh model gallery if we're currently in Resources tab
+                if (_currentTab == "Resources")
+                {
+                    LoadModels();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"An error occurred while importing the model:\n\n{ex.Message}",
+                "Import Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+    }
+
     private string GetModDirectory()
     {
         // Get the directory where the executable is located
@@ -295,6 +408,130 @@ public partial class ModWorkspaceWindow : Window
         catch (Exception ex)
         {
             MessageBox.Show($"Error loading textures: {ex.Message}", "Load Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void LoadModels()
+    {
+        try
+        {
+            // Clear existing shapes
+            ItemModelsPanel.Children.Clear();
+            BlockModelsPanel.Children.Clear();
+
+            string modDirectory = GetModDirectory();
+            string assetsPath = Path.Combine(modDirectory, "assets", _modId, "shapes");
+
+            if (!Directory.Exists(assetsPath))
+            {
+                return; // No assets folder yet
+            }
+
+            // Load item shapes
+            string itemShapesPath = Path.Combine(assetsPath, "item");
+            if (Directory.Exists(itemShapesPath))
+            {
+                LoadModelsFromFolder(itemShapesPath, ItemModelsPanel, "item");
+            }
+
+            // Load block shapes
+            string blockShapesPath = Path.Combine(assetsPath, "block");
+            if (Directory.Exists(blockShapesPath))
+            {
+                LoadModelsFromFolder(blockShapesPath, BlockModelsPanel, "block");
+            }
+
+            // Update headers visibility based on content
+            ItemModelsHeader.Visibility = ItemModelsPanel.Children.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+            BlockModelsHeader.Visibility = BlockModelsPanel.Children.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading shapes: {ex.Message}", "Load Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void LoadModelsFromFolder(string folderPath, WrapPanel targetPanel, string shapeType)
+    {
+        string[] shapeFiles = Directory.GetFiles(folderPath, "*.json");
+
+        foreach (string shapeFile in shapeFiles)
+        {
+            string fileName = Path.GetFileNameWithoutExtension(shapeFile);
+
+            // Create border for selection visual feedback
+            Border shapeBorder = new Border
+            {
+                Margin = new Thickness(10),
+                CornerRadius = new CornerRadius(5),
+                Cursor = System.Windows.Input.Cursors.Hand,
+                Tag = shapeFile, // Store the full path for deletion
+                Background = new SolidColorBrush(Colors.Transparent)
+            };
+
+            // Create shape display container
+            StackPanel shapeContainer = new StackPanel
+            {
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Background = new SolidColorBrush(Colors.Transparent)
+            };
+
+            // Create a simple 3D cube representation for the shape preview
+            Border shapePreview = new Border
+            {
+                Width = 64,
+                Height = 64,
+                Margin = new Thickness(5),
+                Background = new SolidColorBrush(Color.FromRgb(139, 142, 76)), // Vintage Story green color
+                BorderBrush = new SolidColorBrush(Color.FromRgb(90, 95, 58)),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(3)
+            };
+
+            // Add a simple 3D effect
+            shapePreview.Effect = new System.Windows.Media.Effects.DropShadowEffect
+            {
+                Color = Colors.Black,
+                Direction = 315,
+                ShadowDepth = 2,
+                Opacity = 0.3
+            };
+
+            // Create label with shape name
+            TextBlock shapeLabel = new TextBlock
+            {
+                Text = fileName,
+                Foreground = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#cccccc")),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                TextWrapping = TextWrapping.Wrap,
+                MaxWidth = 80,
+                Margin = new Thickness(5)
+            };
+
+            // Add preview and label to container
+            shapeContainer.Children.Add(shapePreview);
+            shapeContainer.Children.Add(shapeLabel);
+
+            // Add container to border
+            shapeBorder.Child = shapeContainer;
+
+            // Add click event handler for shape selection
+            shapeBorder.MouseLeftButtonUp += (sender, e) =>
+            {
+                SelectModel(shapeFile, shapeType, shapeBorder);
+            };
+
+            // Add double-click event handler for shape preview
+            shapeBorder.MouseLeftButtonDown += (sender, e) =>
+            {
+                if (e.ClickCount == 2)
+                {
+                    PreviewModel(shapeFile);
+                }
+            };
+
+            // Add container to panel
+            targetPanel.Children.Add(shapeBorder);
         }
     }
 
@@ -399,5 +636,54 @@ public partial class ModWorkspaceWindow : Window
         // Update delete button tooltip
         string fileName = Path.GetFileNameWithoutExtension(texturePath);
         DeleteTextureButton.ToolTip = $"Delete texture: {fileName}";
+    }
+
+    private void SelectModel(string shapePath, string shapeType, Border clickedBorder)
+    {
+        // Clear previous selection
+        if (_selectedModelBorder != null)
+        {
+            _selectedModelBorder.BorderBrush = new SolidColorBrush(Colors.Transparent);
+            _selectedModelBorder.Background = new SolidColorBrush(Colors.Transparent);
+        }
+
+        // Set new selection
+        _selectedModelPath = shapePath;
+        _selectedModelType = shapeType;
+        _selectedModelBorder = clickedBorder;
+
+        // Visual feedback for selected shape
+        clickedBorder.BorderBrush = new SolidColorBrush(Colors.Yellow);
+        clickedBorder.BorderThickness = new Thickness(2);
+        clickedBorder.Background = new SolidColorBrush(Color.FromArgb(50, 255, 255, 0)); // Semi-transparent yellow background
+
+        // Update delete button tooltip
+        string fileName = Path.GetFileNameWithoutExtension(shapePath);
+        DeleteTextureButton.ToolTip = $"Delete shape: {fileName}";
+    }
+
+    private void PreviewModel(string shapePath)
+    {
+        try
+        {
+            // Show shape information for now (ModelViewerWindow will be implemented later)
+            string fileName = Path.GetFileNameWithoutExtension(shapePath);
+            MessageBox.Show(
+                $"Shape Preview:\n\n" +
+                $"File: {fileName}\n" +
+                $"Path: {shapePath}\n\n" +
+                $"Shape viewer functionality will be implemented in a future update.",
+                "Shape Preview",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"An error occurred while previewing the shape:\n\n{ex.Message}",
+                "Preview Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
     }
 }
