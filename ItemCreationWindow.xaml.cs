@@ -12,6 +12,9 @@ public partial class ItemCreationWindow : Window
 {
     private readonly string _modId;
     private readonly string _modName;
+    private ItemData? _existingItemData = null;
+    private string _existingItemName = "";
+    private Action? _refreshCallback = null;
 
     public ItemCreationWindow(string modId, string modName)
     {
@@ -22,6 +25,54 @@ public partial class ItemCreationWindow : Window
         // Load available item textures and shapes
         LoadItemTextures();
         LoadItemShapes();
+    }
+
+    // Constructor for creating new items with refresh callback
+    public ItemCreationWindow(string modId, string modName, Action refreshCallback)
+    {
+        InitializeComponent();
+        _modId = modId;
+        _modName = modName;
+        _refreshCallback = refreshCallback;
+
+        // Load available item textures and shapes
+        LoadItemTextures();
+        LoadItemShapes();
+    }
+
+    // Constructor for editing existing items
+    public ItemCreationWindow(string modId, string modName, ItemData existingItemData, string existingItemName)
+    {
+        InitializeComponent();
+        _modId = modId;
+        _modName = modName;
+        _existingItemData = existingItemData;
+        _existingItemName = existingItemName;
+
+        // Load available item textures and shapes
+        LoadItemTextures();
+        LoadItemShapes();
+
+        // Pre-fill the form with existing item data
+        PreFillFormWithExistingData();
+    }
+
+    // Constructor for editing existing items with refresh callback
+    public ItemCreationWindow(string modId, string modName, ItemData existingItemData, string existingItemName, Action refreshCallback)
+    {
+        InitializeComponent();
+        _modId = modId;
+        _modName = modName;
+        _existingItemData = existingItemData;
+        _existingItemName = existingItemName;
+        _refreshCallback = refreshCallback;
+
+        // Load available item textures and shapes
+        LoadItemTextures();
+        LoadItemShapes();
+
+        // Pre-fill the form with existing item data
+        PreFillFormWithExistingData();
     }
 
     private void LoadItemTextures()
@@ -120,7 +171,7 @@ public partial class ItemCreationWindow : Window
             ShapeComboBox.SelectedItem == null)
         {
             MessageBox.Show("Please fill in all fields (Name, ID, and select a texture and shape).",
-                          "Missing Information", MessageBoxButton.OK, MessageBoxImage.Warning);
+                           "Missing Information", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
@@ -157,30 +208,97 @@ public partial class ItemCreationWindow : Window
             });
 
             string itemFilePath = Path.Combine(itemTypesPath, $"{ItemIdTextBox.Text}.json");
+
+            // Check if we're editing an existing item
+            bool isEditing = _existingItemData != null;
+
+            if (isEditing)
+            {
+                // For editing, we need to check if the item ID changed
+                string oldItemCode = _existingItemData.Code;
+                string newItemCode = ItemIdTextBox.Text;
+
+                if (oldItemCode != newItemCode)
+                {
+                    // Item ID changed, remove old file
+                    string oldItemFilePath = Path.Combine(itemTypesPath, $"{oldItemCode}.json");
+                    if (File.Exists(oldItemFilePath))
+                    {
+                        File.Delete(oldItemFilePath);
+                    }
+
+                    // Update en.json to remove old entry and add new one
+                    UpdateEnJsonFileForEdit(oldItemCode, newItemCode, ItemNameTextBox.Text);
+                }
+                else
+                {
+                    // Item ID unchanged, just update en.json
+                    UpdateEnJsonFile(newItemCode, ItemNameTextBox.Text);
+                }
+            }
+            else
+            {
+                // Creating new item
+                UpdateEnJsonFile(ItemIdTextBox.Text, ItemNameTextBox.Text);
+            }
+
             File.WriteAllText(itemFilePath, jsonContent);
 
-            // Update the en.json file with the new item entry
-            UpdateEnJsonFile(ItemIdTextBox.Text, ItemNameTextBox.Text);
-
-            MessageBox.Show($"Item '{ItemNameTextBox.Text}' has been created successfully!\n\n" +
+            string action = isEditing ? "updated" : "created";
+            MessageBox.Show($"Item '{ItemNameTextBox.Text}' has been {action} successfully!\n\n" +
                            $"ID: {ItemIdTextBox.Text}\n" +
                            $"Texture: {TextureComboBox.SelectedItem}\n" +
                            $"Shape: {ShapeComboBox.SelectedItem}\n" +
                            $"Location: {itemFilePath}",
-                           "Item Created", MessageBoxButton.OK, MessageBoxImage.Information);
+                           $"Item {action}", MessageBoxButton.OK, MessageBoxImage.Information);
+
+            // Call the refresh callback to update the items list in the parent window
+            _refreshCallback?.Invoke();
 
             this.Close();
         }
         catch (Exception ex)
         {
             MessageBox.Show($"An error occurred while creating the item:\n\n{ex.Message}",
-                          "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                           "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
     private void CancelButton_Click(object sender, RoutedEventArgs e)
     {
         this.Close();
+    }
+
+    private void PreFillFormWithExistingData()
+    {
+        if (_existingItemData != null)
+        {
+            // Pre-fill the form fields with existing data
+            ItemIdTextBox.Text = _existingItemData.Code;
+            ItemNameTextBox.Text = _existingItemName;
+
+            // Set the texture selection
+            string textureBase = _existingItemData.Texture.Base;
+            if (textureBase.StartsWith("item/"))
+            {
+                string textureName = textureBase.Substring(5); // Remove "item/" prefix
+                TextureComboBox.SelectedItem = textureName;
+            }
+
+            // Set the shape selection
+            string shapeBase = _existingItemData.Shape.Base;
+            if (shapeBase.StartsWith("item/"))
+            {
+                string shapeName = shapeBase.Substring(5); // Remove "item/" prefix
+                ShapeComboBox.SelectedItem = shapeName;
+            }
+
+            // Update the window title to indicate editing mode
+            this.Title = $"Edit Item - {_modName}";
+
+            // Update the button text to indicate editing mode
+            CreateItemButton.Content = "Update Item";
+        }
     }
 
     private void UpdateEnJsonFile(string itemCode, string itemName)
@@ -244,6 +362,75 @@ public partial class ItemCreationWindow : Window
         {
             System.Diagnostics.Debug.WriteLine($"Error updating en.json: {ex.Message}");
             // Don't show error to user as the item was created successfully
+            // The language file update is a secondary feature
+        }
+    }
+
+    private void UpdateEnJsonFileForEdit(string oldItemCode, string newItemCode, string newItemName)
+    {
+        try
+        {
+            string modDirectory = GetModDirectory();
+            string langDirectory = Path.Combine(modDirectory, "assets", _modId, "lang");
+
+            // Create lang directory if it doesn't exist
+            Directory.CreateDirectory(langDirectory);
+
+            string enJsonPath = Path.Combine(langDirectory, "en.json");
+
+            // Read existing en.json or create new dictionary
+            Dictionary<string, string> langEntries = new Dictionary<string, string>();
+
+            if (File.Exists(enJsonPath))
+            {
+                try
+                {
+                    string existingContent = File.ReadAllText(enJsonPath);
+                    if (!string.IsNullOrWhiteSpace(existingContent))
+                    {
+                        // Parse existing JSON
+                        try
+                        {
+                            langEntries = JsonSerializer.Deserialize<Dictionary<string, string>>(existingContent)
+                                        ?? new Dictionary<string, string>();
+                        }
+                        catch
+                        {
+                            // If parsing fails, start with empty dictionary
+                            langEntries = new Dictionary<string, string>();
+                        }
+                    }
+                }
+                catch
+                {
+                    // If reading fails, start with empty dictionary
+                    langEntries = new Dictionary<string, string>();
+                }
+            }
+
+            // Remove old entry
+            string oldItemKey = $"item-{oldItemCode}";
+            langEntries.Remove(oldItemKey);
+
+            // Add new entry
+            string newItemKey = $"item-{newItemCode}";
+            langEntries[newItemKey] = newItemName;
+
+            // Write back to en.json with proper formatting
+            var options = new JsonSerializerOptions
+            {
+                WriteIndented = true
+            };
+
+            string updatedContent = JsonSerializer.Serialize(langEntries, options);
+            File.WriteAllText(enJsonPath, updatedContent);
+
+            System.Diagnostics.Debug.WriteLine($"Updated en.json at {enJsonPath} - removed: {oldItemKey}, added: {newItemKey}: {newItemName}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error updating en.json for edit: {ex.Message}");
+            // Don't show error to user as the item was updated successfully
             // The language file update is a secondary feature
         }
     }

@@ -179,14 +179,64 @@
                         <!-- Workspace Content Area -->
                         <Border Grid.Row="1" Background="#1f1d1b" Margin="0,20,0,0" CornerRadius="5">
                             <Grid Margin="20">
-                                <TextBlock x:Name="ContentTabMessage"
-                                           Text="Select an option from the sidebar to begin working on your mod."
-                                           Foreground="#cccccc"
-                                           HorizontalAlignment="Center"
-                                           VerticalAlignment="Center"
-                                           TextAlignment="Center"
-                                           TextWrapping="Wrap"/>
+                                <!-- Content Tab - Items List -->
+                                <ScrollViewer x:Name="ContentTabContent">
+                                    <StackPanel Margin="20">
+                                        <!-- Items Section -->
+                                        <TextBlock x:Name="ItemsHeader"
+                                                   Text="Items:"
+                                                   Style="{StaticResource WorkspaceLabelStyle}"
+                                                   Margin="0,0,0,15"/>
 
+                                        <ListView x:Name="ItemsListView"
+                                                  Background="Transparent"
+                                                  BorderThickness="0"
+                                                  SelectionChanged="ItemsListView_SelectionChanged">
+                                            <ListView.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Background="#2f2d2b" Margin="5" Padding="10" CornerRadius="3">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="200"/>
+                                                                <ColumnDefinition Width="150"/>
+                                                                <ColumnDefinition Width="100"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                            </Grid.ColumnDefinitions>
+
+                                                            <TextBlock Text="{Binding Name}"
+                                                                       Foreground="#ffffff"
+                                                                       FontSize="14"
+                                                                       FontWeight="SemiBold"
+                                                                       Grid.Column="0"/>
+
+                                                            <TextBlock Text="{Binding Code}"
+                                                                       Foreground="#cccccc"
+                                                                       FontSize="12"
+                                                                       Grid.Column="1"/>
+
+                                                            <TextBlock Text="{Binding Type}"
+                                                                       Foreground="#cccccc"
+                                                                       FontSize="12"
+                                                                       Grid.Column="2"/>
+
+                                                            <Button Content="Edit"
+                                                                    Tag="{Binding Code}"
+                                                                    Click="EditItemButton_Click"
+                                                                    Style="{StaticResource SidebarButtonStyle}"
+                                                                    Width="60"
+                                                                    Height="25"
+                                                                    FontSize="10"
+                                                                    Grid.Column="3"
+                                                                    HorizontalAlignment="Right"/>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ListView.ItemTemplate>
+                                        </ListView>
+                                    </StackPanel>
+                                </ScrollViewer>
+
+                                <!-- Resources Tab Content -->
                                 <ScrollViewer x:Name="ResourcesTabContent"
                                               Visibility="Collapsed">
                                     <StackPanel Margin="20">

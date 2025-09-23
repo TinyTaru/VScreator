@@ -1,0 +1,14 @@
+{
+  "Code": "supertest",
+  "CreativeInventory": {
+    "General": [
+      "*"
+    ]
+  },
+  "Texture": {
+    "Base": "item/simplewand"
+  },
+  "Shape": {
+    "Base": "item/ingotshiny"
+  }
+}

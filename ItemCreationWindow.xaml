@@ -179,8 +179,8 @@
 
         <!-- Buttons -->
         <StackPanel Grid.Row="2" Orientation="Horizontal"
-                    HorizontalAlignment="Right" Margin="0,25,0,0">
-            <Button Content="Create Item" Style="{StaticResource ItemCreateButtonStyle}"
+                     HorizontalAlignment="Right" Margin="0,25,0,0">
+            <Button x:Name="CreateItemButton" Content="Create Item" Style="{StaticResource ItemCreateButtonStyle}"
                     Click="CreateItemButton_Click"/>
             <Button Content="Cancel" Style="{StaticResource ItemCreateButtonStyle}"
                     Click="CancelButton_Click"/>

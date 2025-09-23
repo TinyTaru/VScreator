@@ -39,8 +39,8 @@ public partial class ModWorkspaceWindow : Window
 
     private void AddItemButton_Click(object sender, RoutedEventArgs e)
     {
-        // Open the item creation window
-        var itemCreationWindow = new ItemCreationWindow(_modId, _modName);
+        // Open the item creation window with refresh callback
+        var itemCreationWindow = new ItemCreationWindow(_modId, _modName, RefreshItemsList);
         itemCreationWindow.ShowDialog();
     }
 
@@ -88,10 +88,13 @@ public partial class ModWorkspaceWindow : Window
             ContentTabButtons.Visibility = Visibility.Visible;
             ResourcesTabButtons.Visibility = Visibility.Collapsed;
 
-            // Show content tab message, hide resources tab content
-            ContentTabMessage.Visibility = Visibility.Visible;
+            // Show content tab content, hide resources tab content
+            ContentTabContent.Visibility = Visibility.Visible;
             ResourcesTabContent.Visibility = Visibility.Collapsed;
             DeleteTextureButton.Visibility = Visibility.Collapsed;
+
+            // Load items when switching to Content tab
+            LoadItems();
         }
         else if (tabName == "Resources")
         {
@@ -99,8 +102,8 @@ public partial class ModWorkspaceWindow : Window
             ContentTabButtons.Visibility = Visibility.Collapsed;
             ResourcesTabButtons.Visibility = Visibility.Visible;
 
-            // Hide content tab message, show resources tab content
-            ContentTabMessage.Visibility = Visibility.Collapsed;
+            // Hide content tab content, show resources tab content
+            ContentTabContent.Visibility = Visibility.Collapsed;
             ResourcesTabContent.Visibility = Visibility.Visible;
             DeleteTextureButton.Visibility = Visibility.Visible;
 
@@ -698,4 +701,166 @@ public partial class ModWorkspaceWindow : Window
                 MessageBoxImage.Error);
         }
     }
+
+    private void LoadItems()
+    {
+        try
+        {
+            // Clear existing items
+            ItemsListView.Items.Clear();
+
+            string modDirectory = GetModDirectory();
+            string itemTypesPath = Path.Combine(modDirectory, "assets", _modId, "itemtypes");
+
+            if (!Directory.Exists(itemTypesPath))
+            {
+                // No items found yet
+                ItemsHeader.Text = "Items: (No items created yet)";
+                return;
+            }
+
+            string[] itemFiles = Directory.GetFiles(itemTypesPath, "*.json");
+
+            foreach (string itemFile in itemFiles)
+            {
+                try
+                {
+                    string itemCode = Path.GetFileNameWithoutExtension(itemFile);
+                    string jsonContent = File.ReadAllText(itemFile);
+
+                    // Parse the item data
+                    var itemData = System.Text.Json.JsonSerializer.Deserialize<ItemData>(jsonContent);
+                    if (itemData != null)
+                    {
+                        // Get the item name from en.json if available
+                        string itemName = GetItemNameFromEnJson(itemCode);
+
+                        var itemViewModel = new ItemViewModel
+                        {
+                            Code = itemCode,
+                            Name = itemName,
+                            Type = "Item"
+                        };
+
+                        ItemsListView.Items.Add(itemViewModel);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error loading item {itemFile}: {ex.Message}");
+                }
+            }
+
+            // Update header based on item count
+            ItemsHeader.Text = $"Items: ({ItemsListView.Items.Count})";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading items: {ex.Message}", "Load Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private string GetItemNameFromEnJson(string itemCode)
+    {
+        try
+        {
+            string modDirectory = GetModDirectory();
+            string langDirectory = Path.Combine(modDirectory, "assets", _modId, "lang");
+            string enJsonPath = Path.Combine(langDirectory, "en.json");
+
+            if (File.Exists(enJsonPath))
+            {
+                string jsonContent = File.ReadAllText(enJsonPath);
+                string itemKey = $"item-{itemCode}";
+
+                // Simple extraction for the item name
+                string pattern = $"\"{itemKey}\"\\s*:\\s*\"([^\"]+)\"";
+                var match = System.Text.RegularExpressions.Regex.Match(jsonContent, pattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+                if (match.Success)
+                {
+                    return match.Groups[1].Value;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error reading item name from en.json: {ex.Message}");
+        }
+
+        // Fallback to item code if name not found
+        return itemCode;
+    }
+
+    private void ItemsListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        // Handle selection change if needed
+    }
+
+    private void EditItemButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var button = sender as Button;
+            if (button != null)
+            {
+                string itemCode = button.Tag as string;
+                if (!string.IsNullOrEmpty(itemCode))
+                {
+                    EditItem(itemCode);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error editing item: {ex.Message}", "Edit Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void RefreshItemsList()
+    {
+        // Refresh the items list by reloading from disk
+        LoadItems();
+    }
+
+    private void EditItem(string itemCode)
+    {
+        try
+        {
+            string modDirectory = GetModDirectory();
+            string itemTypesPath = Path.Combine(modDirectory, "assets", _modId, "itemtypes");
+            string itemFilePath = Path.Combine(itemTypesPath, $"{itemCode}.json");
+
+            if (!File.Exists(itemFilePath))
+            {
+                MessageBox.Show($"Item file not found: {itemFilePath}", "File Not Found", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            string jsonContent = File.ReadAllText(itemFilePath);
+            var itemData = System.Text.Json.JsonSerializer.Deserialize<ItemData>(jsonContent);
+
+            if (itemData != null)
+            {
+                // Get item name from en.json
+                string itemName = GetItemNameFromEnJson(itemCode);
+
+                // Open ItemCreationWindow with pre-filled data and refresh callback
+                var itemCreationWindow = new ItemCreationWindow(_modId, _modName, itemData, itemName, RefreshItemsList);
+                itemCreationWindow.ShowDialog();
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading item for editing: {ex.Message}", "Edit Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+}
+
+// View model for items list
+public class ItemViewModel
+{
+    public string Code { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string Type { get; set; } = "";
 }
