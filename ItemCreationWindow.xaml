@@ -170,6 +170,10 @@
                 <TextBlock Text="Texture:" Style="{StaticResource ItemLabelStyle}"/>
                 <ComboBox x:Name="TextureComboBox" Style="{StaticResource ItemComboBoxStyle}"
                           SelectionChanged="TextureComboBox_SelectionChanged"/>
+
+                <TextBlock Text="Shape:" Style="{StaticResource ItemLabelStyle}"/>
+                <ComboBox x:Name="ShapeComboBox" Style="{StaticResource ItemComboBoxStyle}"
+                          SelectionChanged="ShapeComboBox_SelectionChanged"/>
             </StackPanel>
         </ScrollViewer>
 

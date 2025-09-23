@@ -19,8 +19,9 @@ public partial class ItemCreationWindow : Window
         _modId = modId;
         _modName = modName;
 
-        // Load available item textures
+        // Load available item textures and shapes
         LoadItemTextures();
+        LoadItemShapes();
     }
 
     private void LoadItemTextures()
@@ -58,6 +59,41 @@ public partial class ItemCreationWindow : Window
         }
     }
 
+    private void LoadItemShapes()
+    {
+        try
+        {
+            string modDirectory = GetModDirectory();
+            string itemShapesPath = Path.Combine(modDirectory, "assets", _modId, "shapes", "item");
+
+            if (Directory.Exists(itemShapesPath))
+            {
+                string[] shapeFiles = Directory.GetFiles(itemShapesPath, "*.json");
+
+                foreach (string shapeFile in shapeFiles)
+                {
+                    string fileName = Path.GetFileNameWithoutExtension(shapeFile);
+                    ShapeComboBox.Items.Add(fileName);
+                }
+
+                if (ShapeComboBox.Items.Count > 0)
+                {
+                    ShapeComboBox.SelectedIndex = 0;
+                }
+            }
+            else
+            {
+                // No item shapes found
+                ShapeComboBox.Items.Add("No item shapes found");
+                ShapeComboBox.IsEnabled = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading shapes: {ex.Message}", "Load Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
     private string GetModDirectory()
     {
         string exeDirectory = AppDomain.CurrentDomain.BaseDirectory;
@@ -70,14 +106,20 @@ public partial class ItemCreationWindow : Window
         // This method is required for the XAML but we don't need to do anything special here
     }
 
+    private void ShapeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        // This method is required for the XAML but we don't need to do anything special here
+    }
+
     private void CreateItemButton_Click(object sender, RoutedEventArgs e)
     {
         // Validate inputs
         if (string.IsNullOrWhiteSpace(ItemNameTextBox.Text) ||
             string.IsNullOrWhiteSpace(ItemIdTextBox.Text) ||
-            TextureComboBox.SelectedItem == null)
+            TextureComboBox.SelectedItem == null ||
+            ShapeComboBox.SelectedItem == null)
         {
-            MessageBox.Show("Please fill in all fields (Name, ID, and select a texture).",
+            MessageBox.Show("Please fill in all fields (Name, ID, and select a texture and shape).",
                           "Missing Information", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
@@ -102,6 +144,10 @@ public partial class ItemCreationWindow : Window
                 Texture = new ItemTexture
                 {
                     Base = $"item/{TextureComboBox.SelectedItem.ToString()}"
+                },
+                Shape = new ItemShape
+                {
+                    Base = $"item/{ShapeComboBox.SelectedItem.ToString()}"
                 }
             };
 
@@ -116,6 +162,7 @@ public partial class ItemCreationWindow : Window
             MessageBox.Show($"Item '{ItemNameTextBox.Text}' has been created successfully!\n\n" +
                           $"ID: {ItemIdTextBox.Text}\n" +
                           $"Texture: {TextureComboBox.SelectedItem}\n" +
+                          $"Shape: {ShapeComboBox.SelectedItem}\n" +
                           $"Location: {itemFilePath}",
                           "Item Created", MessageBoxButton.OK, MessageBoxImage.Information);
 
@@ -139,6 +186,7 @@ public class ItemData
     public string Code { get; set; } = "";
     public CreativeInventory CreativeInventory { get; set; } = new();
     public ItemTexture Texture { get; set; } = new();
+    public ItemShape Shape { get; set; } = new();
 }
 
 public class CreativeInventory
@@ -147,6 +195,11 @@ public class CreativeInventory
 }
 
 public class ItemTexture
+{
+    public string Base { get; set; } = "";
+}
+
+public class ItemShape
 {
     public string Base { get; set; } = "";
 }

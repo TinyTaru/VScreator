@@ -6,6 +6,9 @@
     ]
   },
   "Texture": {
-    "Base": "item/simplewand"
+    "Base": "item/Advancement Background"
+  },
+  "Shape": {
+    "Base": "item/ingotshiny"
   }
 }
