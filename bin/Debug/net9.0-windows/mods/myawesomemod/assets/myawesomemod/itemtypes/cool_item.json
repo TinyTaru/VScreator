@@ -1,0 +1,14 @@
+{
+  "Code": "cool_item",
+  "CreativeInventory": {
+    "General": [
+      "*"
+    ]
+  },
+  "Texture": {
+    "Base": "item/Blue Glowberry Extract"
+  },
+  "Shape": {
+    "Base": "item/ingotshiny"
+  }
+}

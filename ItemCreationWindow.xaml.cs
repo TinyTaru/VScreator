@@ -159,12 +159,15 @@ public partial class ItemCreationWindow : Window
             string itemFilePath = Path.Combine(itemTypesPath, $"{ItemIdTextBox.Text}.json");
             File.WriteAllText(itemFilePath, jsonContent);
 
+            // Update the en.json file with the new item entry
+            UpdateEnJsonFile(ItemIdTextBox.Text, ItemNameTextBox.Text);
+
             MessageBox.Show($"Item '{ItemNameTextBox.Text}' has been created successfully!\n\n" +
-                          $"ID: {ItemIdTextBox.Text}\n" +
-                          $"Texture: {TextureComboBox.SelectedItem}\n" +
-                          $"Shape: {ShapeComboBox.SelectedItem}\n" +
-                          $"Location: {itemFilePath}",
-                          "Item Created", MessageBoxButton.OK, MessageBoxImage.Information);
+                           $"ID: {ItemIdTextBox.Text}\n" +
+                           $"Texture: {TextureComboBox.SelectedItem}\n" +
+                           $"Shape: {ShapeComboBox.SelectedItem}\n" +
+                           $"Location: {itemFilePath}",
+                           "Item Created", MessageBoxButton.OK, MessageBoxImage.Information);
 
             this.Close();
         }
@@ -178,6 +181,71 @@ public partial class ItemCreationWindow : Window
     private void CancelButton_Click(object sender, RoutedEventArgs e)
     {
         this.Close();
+    }
+
+    private void UpdateEnJsonFile(string itemCode, string itemName)
+    {
+        try
+        {
+            string modDirectory = GetModDirectory();
+            string langDirectory = Path.Combine(modDirectory, "assets", _modId, "lang");
+
+            // Create lang directory if it doesn't exist
+            Directory.CreateDirectory(langDirectory);
+
+            string enJsonPath = Path.Combine(langDirectory, "en.json");
+
+            // Read existing en.json or create new dictionary
+            Dictionary<string, string> langEntries = new Dictionary<string, string>();
+
+            if (File.Exists(enJsonPath))
+            {
+                try
+                {
+                    string existingContent = File.ReadAllText(enJsonPath);
+                    if (!string.IsNullOrWhiteSpace(existingContent))
+                    {
+                        // Parse existing JSON
+                        try
+                        {
+                            langEntries = JsonSerializer.Deserialize<Dictionary<string, string>>(existingContent)
+                                       ?? new Dictionary<string, string>();
+                        }
+                        catch
+                        {
+                            // If parsing fails, start with empty dictionary
+                            langEntries = new Dictionary<string, string>();
+                        }
+                    }
+                }
+                catch
+                {
+                    // If reading fails, start with empty dictionary
+                    langEntries = new Dictionary<string, string>();
+                }
+            }
+
+            // Add or update the item entry
+            string itemKey = $"item-{itemCode}";
+            langEntries[itemKey] = itemName;
+
+            // Write back to en.json with proper formatting
+            var options = new JsonSerializerOptions
+            {
+                WriteIndented = true
+            };
+
+            string updatedContent = JsonSerializer.Serialize(langEntries, options);
+            File.WriteAllText(enJsonPath, updatedContent);
+
+            System.Diagnostics.Debug.WriteLine($"Updated en.json at {enJsonPath} with entry: {itemKey}: {itemName}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error updating en.json: {ex.Message}");
+            // Don't show error to user as the item was created successfully
+            // The language file update is a secondary feature
+        }
     }
 }
 
