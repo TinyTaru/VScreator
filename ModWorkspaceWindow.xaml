@@ -76,17 +76,15 @@
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Width" Value="32"/>
             <Setter Property="Height" Value="32"/>
-            <Setter Property="HorizontalAlignment" Value="Right"/>
-            <Setter Property="VerticalAlignment" Value="Top"/>
-            <Setter Property="Margin" Value="0,10,10,0"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border Background="{TemplateBinding Background}">
-                            <Image Source="/VScreator;component/Resources/Trash Can.png"
-                                   Width="24" Height="24"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"/>
+                            <Rectangle Width="20" Height="20"
+                                       Fill="#FF4444"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       RadiusX="2" RadiusY="2"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
@@ -153,82 +151,87 @@
 
             <!-- Main Workspace Area -->
             <Border Grid.Column="1" Background="#2f2d2b" Margin="10" CornerRadius="5">
-                <Grid Margin="20">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-
-                    <!-- Delete Button -->
+                <Grid>
+                    <!-- Delete Button - positioned in top-right corner of workspace -->
                     <Button x:Name="DeleteTextureButton"
                             Style="{StaticResource DeleteButtonStyle}"
                             Click="DeleteTextureButton_Click"
-                            ToolTip="Delete selected texture or shape"/>
+                            ToolTip="Delete selected texture or shape"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Top"
+                            Margin="0,15,15,0"/>
 
-                    <!-- Tab Selection -->
-                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,20">
-                        <Button Content="Content" Style="{StaticResource TabButtonStyle}"
-                                Click="ContentTab_Click" Tag="Content"/>
-                        <TextBlock Text=" | " Foreground="#ffffff" FontSize="16" Margin="10,0"/>
-                        <Button Content="Resources" Style="{StaticResource TabButtonStyle}"
-                                Click="ResourcesTab_Click" Tag="Resources"/>
-                    </StackPanel>
+                    <Grid Margin="20">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
 
-                    <!-- Workspace Content Area -->
-                    <Border Grid.Row="1" Background="#1f1d1b" Margin="0,20,0,0" CornerRadius="5">
-                        <Grid Margin="20">
-                            <TextBlock x:Name="ContentTabMessage"
-                                       Text="Select an option from the sidebar to begin working on your mod."
-                                       Foreground="#cccccc"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center"
-                                       TextAlignment="Center"
-                                       TextWrapping="Wrap"/>
+                        <!-- Tab Selection -->
+                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,20">
+                            <Button Content="Content" Style="{StaticResource TabButtonStyle}"
+                                    Click="ContentTab_Click" Tag="Content"/>
+                            <TextBlock Text=" | " Foreground="#ffffff" FontSize="16" Margin="10,0"/>
+                            <Button Content="Resources" Style="{StaticResource TabButtonStyle}"
+                                    Click="ResourcesTab_Click" Tag="Resources"/>
+                        </StackPanel>
 
-                            <ScrollViewer x:Name="ResourcesTabContent"
-                                          Visibility="Collapsed">
-                                <StackPanel Margin="20">
-                                    <!-- Item Textures Section -->
-                                    <TextBlock x:Name="ItemTexturesHeader"
-                                               Text="Item Textures:"
-                                               Style="{StaticResource WorkspaceLabelStyle}"
-                                               Margin="0,0,0,15"/>
+                        <!-- Workspace Content Area -->
+                        <Border Grid.Row="1" Background="#1f1d1b" Margin="0,20,0,0" CornerRadius="5">
+                            <Grid Margin="20">
+                                <TextBlock x:Name="ContentTabMessage"
+                                           Text="Select an option from the sidebar to begin working on your mod."
+                                           Foreground="#cccccc"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           TextAlignment="Center"
+                                           TextWrapping="Wrap"/>
 
-                                    <WrapPanel x:Name="ItemTexturesPanel"
-                                               Orientation="Horizontal"
-                                               Margin="0,0,0,30"/>
+                                <ScrollViewer x:Name="ResourcesTabContent"
+                                              Visibility="Collapsed">
+                                    <StackPanel Margin="20">
+                                        <!-- Item Textures Section -->
+                                        <TextBlock x:Name="ItemTexturesHeader"
+                                                   Text="Item Textures:"
+                                                   Style="{StaticResource WorkspaceLabelStyle}"
+                                                   Margin="0,0,0,15"/>
 
-                                    <!-- Block Textures Section -->
-                                    <TextBlock x:Name="BlockTexturesHeader"
-                                               Text="Block Textures:"
-                                               Style="{StaticResource WorkspaceLabelStyle}"
-                                               Margin="0,0,0,15"/>
+                                        <WrapPanel x:Name="ItemTexturesPanel"
+                                                   Orientation="Horizontal"
+                                                   Margin="0,0,0,30"/>
 
-                                    <WrapPanel x:Name="BlockTexturesPanel"
-                                               Orientation="Horizontal"/>
+                                        <!-- Block Textures Section -->
+                                        <TextBlock x:Name="BlockTexturesHeader"
+                                                   Text="Block Textures:"
+                                                   Style="{StaticResource WorkspaceLabelStyle}"
+                                                   Margin="0,0,0,15"/>
 
-                                    <!-- Item Shapes Section -->
-                                    <TextBlock x:Name="ItemModelsHeader"
-                                               Text="Item Shapes:"
-                                               Style="{StaticResource WorkspaceLabelStyle}"
-                                               Margin="0,30,0,15"/>
+                                        <WrapPanel x:Name="BlockTexturesPanel"
+                                                   Orientation="Horizontal"/>
 
-                                    <WrapPanel x:Name="ItemModelsPanel"
-                                               Orientation="Horizontal"
-                                               Margin="0,0,0,30"/>
+                                        <!-- Item Shapes Section -->
+                                        <TextBlock x:Name="ItemModelsHeader"
+                                                   Text="Item Shapes:"
+                                                   Style="{StaticResource WorkspaceLabelStyle}"
+                                                   Margin="0,30,0,15"/>
 
-                                    <!-- Block Shapes Section -->
-                                    <TextBlock x:Name="BlockModelsHeader"
-                                               Text="Block Shapes:"
-                                               Style="{StaticResource WorkspaceLabelStyle}"
-                                               Margin="0,0,0,15"/>
+                                        <WrapPanel x:Name="ItemModelsPanel"
+                                                   Orientation="Horizontal"
+                                                   Margin="0,0,0,30"/>
 
-                                    <WrapPanel x:Name="BlockModelsPanel"
-                                               Orientation="Horizontal"/>
-                                </StackPanel>
-                            </ScrollViewer>
-                        </Grid>
-                    </Border>
+                                        <!-- Block Shapes Section -->
+                                        <TextBlock x:Name="BlockModelsHeader"
+                                                   Text="Block Shapes:"
+                                                   Style="{StaticResource WorkspaceLabelStyle}"
+                                                   Margin="0,0,0,15"/>
+
+                                        <WrapPanel x:Name="BlockModelsPanel"
+                                                   Orientation="Horizontal"/>
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </Grid>
+                        </Border>
+                    </Grid>
                 </Grid>
             </Border>
         </Grid>

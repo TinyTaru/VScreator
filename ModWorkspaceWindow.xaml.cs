@@ -17,14 +17,14 @@ public partial class ModWorkspaceWindow : Window
     private string _currentTab = "Content";
 
     // Texture selection tracking
-    private string _selectedTexturePath = null;
-    private string _selectedTextureType = null; // "item" or "block"
-    private Border _selectedTextureBorder = null;
+    private string? _selectedTexturePath = null;
+    private string? _selectedTextureType = null; // "item" or "block"
+    private Border? _selectedTextureBorder = null;
 
     // Model selection tracking
-    private string _selectedModelPath = null;
-    private string _selectedModelType = null; // "item" or "block"
-    private Border _selectedModelBorder = null;
+    private string? _selectedModelPath = null;
+    private string? _selectedModelType = null; // "item" or "block"
+    private Border? _selectedModelBorder = null;
 
     public ModWorkspaceWindow(string modId, string modName)
     {
@@ -34,6 +34,7 @@ public partial class ModWorkspaceWindow : Window
 
         // Update the window title with mod information
         Title = $"VScreator - {_modName} Workspace";
+        SwitchToTab("Content");
     }
 
     private void AddItemButton_Click(object sender, RoutedEventArgs e)
@@ -90,6 +91,7 @@ public partial class ModWorkspaceWindow : Window
             // Show content tab message, hide resources tab content
             ContentTabMessage.Visibility = Visibility.Visible;
             ResourcesTabContent.Visibility = Visibility.Collapsed;
+            DeleteTextureButton.Visibility = Visibility.Collapsed;
         }
         else if (tabName == "Resources")
         {
@@ -100,6 +102,7 @@ public partial class ModWorkspaceWindow : Window
             // Hide content tab message, show resources tab content
             ContentTabMessage.Visibility = Visibility.Collapsed;
             ResourcesTabContent.Visibility = Visibility.Visible;
+            DeleteTextureButton.Visibility = Visibility.Visible;
 
             // Load textures and models when switching to Resources tab
             LoadTextures();
@@ -123,7 +126,7 @@ public partial class ModWorkspaceWindow : Window
                 return;
             }
 
-            string selectedPath, selectedType, itemType, itemTypeName;
+            string? selectedPath, selectedType, itemType, itemTypeName;
 
             if (!string.IsNullOrEmpty(_selectedTexturePath))
             {
@@ -156,6 +159,13 @@ public partial class ModWorkspaceWindow : Window
 
             if (result == MessageBoxResult.Yes)
             {
+                // Force garbage collection to release file handles
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+
+                // Small delay to ensure file handles are released
+                System.Threading.Thread.Sleep(100);
+
                 // Delete the file
                 File.Delete(selectedPath);
 
@@ -571,11 +581,13 @@ public partial class ModWorkspaceWindow : Window
 
             try
             {
-                // Load the image
+                // Load the image with proper caching settings
                 BitmapImage bitmap = new BitmapImage();
                 bitmap.BeginInit();
                 bitmap.UriSource = new Uri(textureFile, UriKind.Absolute);
+                bitmap.CacheOption = BitmapCacheOption.OnLoad; // Cache the image in memory
                 bitmap.EndInit();
+                bitmap.Freeze(); // Make it immutable to help with cleanup
 
                 textureImage.Source = bitmap;
             }
