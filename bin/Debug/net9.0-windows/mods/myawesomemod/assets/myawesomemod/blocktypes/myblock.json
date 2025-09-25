@@ -1,0 +1,18 @@
+{
+  "Code": "myblock",
+  "CreativeInventory": {
+    "General": [
+      "*"
+    ]
+  },
+  "DrawType": "Cube",
+  "Texture": {
+    "Base": "block/Gem Engraver Front"
+  },
+  "BlockMaterial": "Stone",
+  "Resistance": 5.4,
+  "Sounds": {
+    "Place": "game:block/dirt",
+    "Walk": "game:walk/stone"
+  }
+}

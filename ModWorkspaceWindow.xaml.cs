@@ -46,8 +46,9 @@ public partial class ModWorkspaceWindow : Window
 
     private void AddBlockButton_Click(object sender, RoutedEventArgs e)
     {
-        MessageBox.Show($"Add Block functionality will be implemented here.\n\nMod: {_modName}\nID: {_modId}",
-                        "Add Block", MessageBoxButton.OK, MessageBoxImage.Information);
+        // Open the block creation window with refresh callback
+        var blockCreationWindow = new BlockCreationWindow(_modId, _modName, RefreshBlocksList);
+        blockCreationWindow.ShowDialog();
     }
 
     private void AddRecipeButton_Click(object sender, RoutedEventArgs e)
@@ -93,8 +94,9 @@ public partial class ModWorkspaceWindow : Window
             ResourcesTabContent.Visibility = Visibility.Collapsed;
             DeleteTextureButton.Visibility = Visibility.Collapsed;
 
-            // Load items when switching to Content tab
+            // Load items and blocks when switching to Content tab
             LoadItems();
+            LoadBlocks();
         }
         else if (tabName == "Resources")
         {
@@ -760,6 +762,65 @@ public partial class ModWorkspaceWindow : Window
         }
     }
 
+    private void LoadBlocks()
+    {
+        try
+        {
+            // Clear existing blocks
+            BlocksListView.Items.Clear();
+
+            string modDirectory = GetModDirectory();
+            string blockTypesPath = Path.Combine(modDirectory, "assets", _modId, "blocktypes");
+
+            if (!Directory.Exists(blockTypesPath))
+            {
+                // No blocks found yet
+                BlocksHeader.Text = "Blocks: (No blocks created yet)";
+                return;
+            }
+
+            string[] blockFiles = Directory.GetFiles(blockTypesPath, "*.json");
+
+            foreach (string blockFile in blockFiles)
+            {
+                try
+                {
+                    string blockCode = Path.GetFileNameWithoutExtension(blockFile);
+                    string jsonContent = File.ReadAllText(blockFile);
+
+                    // Parse the block data
+                    var blockData = System.Text.Json.JsonSerializer.Deserialize<BlockData>(jsonContent);
+                    if (blockData != null)
+                    {
+                        // Get the block name from en.json if available
+                        string blockName = GetBlockNameFromEnJson(blockCode);
+
+                        var blockViewModel = new BlockViewModel
+                        {
+                            Code = blockCode,
+                            Name = blockName,
+                            Type = "Block",
+                            Resistance = blockData.Resistance
+                        };
+
+                        BlocksListView.Items.Add(blockViewModel);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error loading block {blockFile}: {ex.Message}");
+                }
+            }
+
+            // Update header based on block count
+            BlocksHeader.Text = $"Blocks: ({BlocksListView.Items.Count})";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading blocks: {ex.Message}", "Load Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
     private string GetItemNameFromEnJson(string itemCode)
     {
         try
@@ -792,9 +853,99 @@ public partial class ModWorkspaceWindow : Window
         return itemCode;
     }
 
+    private string GetBlockNameFromEnJson(string blockCode)
+    {
+        try
+        {
+            string modDirectory = GetModDirectory();
+            string langDirectory = Path.Combine(modDirectory, "assets", _modId, "lang");
+            string enJsonPath = Path.Combine(langDirectory, "en.json");
+
+            if (File.Exists(enJsonPath))
+            {
+                string jsonContent = File.ReadAllText(enJsonPath);
+                string blockKey = $"block-{blockCode}";
+
+                // Simple extraction for the block name
+                string pattern = $"\"{blockKey}\"\\s*:\\s*\"([^\"]+)\"";
+                var match = System.Text.RegularExpressions.Regex.Match(jsonContent, pattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+                if (match.Success)
+                {
+                    return match.Groups[1].Value;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error reading block name from en.json: {ex.Message}");
+        }
+
+        // Fallback to block code if name not found
+        return blockCode;
+    }
+
     private void ItemsListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         // Handle selection change if needed
+    }
+
+    private void BlocksListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        // Handle selection change if needed
+    }
+
+    private void EditBlockButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var button = sender as Button;
+            if (button != null)
+            {
+                string blockCode = button.Tag as string;
+                if (!string.IsNullOrEmpty(blockCode))
+                {
+                    EditBlock(blockCode);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error editing block: {ex.Message}", "Edit Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void EditBlock(string blockCode)
+    {
+        try
+        {
+            string modDirectory = GetModDirectory();
+            string blockTypesPath = Path.Combine(modDirectory, "assets", _modId, "blocktypes");
+            string blockFilePath = Path.Combine(blockTypesPath, $"{blockCode}.json");
+
+            if (!File.Exists(blockFilePath))
+            {
+                MessageBox.Show($"Block file not found: {blockFilePath}", "File Not Found", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            string jsonContent = File.ReadAllText(blockFilePath);
+            var blockData = System.Text.Json.JsonSerializer.Deserialize<BlockData>(jsonContent);
+
+            if (blockData != null)
+            {
+                // Get block name from en.json
+                string blockName = GetBlockNameFromEnJson(blockCode);
+
+                // Open BlockCreationWindow with pre-filled data
+                var blockCreationWindow = new BlockCreationWindow(_modId, _modName, blockData, blockName, RefreshBlocksList);
+                blockCreationWindow.ShowDialog();
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading block for editing: {ex.Message}", "Edit Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void EditItemButton_Click(object sender, RoutedEventArgs e)
@@ -821,6 +972,12 @@ public partial class ModWorkspaceWindow : Window
     {
         // Refresh the items list by reloading from disk
         LoadItems();
+    }
+
+    private void RefreshBlocksList()
+    {
+        // Refresh the blocks list by reloading from disk
+        LoadBlocks();
     }
 
     private void EditItem(string itemCode)
@@ -863,4 +1020,13 @@ public class ItemViewModel
     public string Code { get; set; } = "";
     public string Name { get; set; } = "";
     public string Type { get; set; } = "";
+}
+
+// View model for blocks list
+public class BlockViewModel
+{
+    public string Code { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string Type { get; set; } = "";
+    public double Resistance { get; set; }
 }

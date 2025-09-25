@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\git\\Mods\\VScreator\\VScreator\\VScreator.csproj": {}
+    "c:\\git\\Mods\\VScreator\\VScreator\\VScreator.csproj": {}
   },
   "projects": {
-    "C:\\git\\Mods\\VScreator\\VScreator\\VScreator.csproj": {
+    "c:\\git\\Mods\\VScreator\\VScreator\\VScreator.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\git\\Mods\\VScreator\\VScreator\\VScreator.csproj",
+        "projectUniqueName": "c:\\git\\Mods\\VScreator\\VScreator\\VScreator.csproj",
         "projectName": "VScreator",
-        "projectPath": "C:\\git\\Mods\\VScreator\\VScreator\\VScreator.csproj",
+        "projectPath": "c:\\git\\Mods\\VScreator\\VScreator\\VScreator.csproj",
         "packagesPath": "C:\\Users\\Sabien\\.nuget\\packages\\",
-        "outputPath": "C:\\git\\Mods\\VScreator\\VScreator\\obj\\",
+        "outputPath": "c:\\git\\Mods\\VScreator\\VScreator\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
