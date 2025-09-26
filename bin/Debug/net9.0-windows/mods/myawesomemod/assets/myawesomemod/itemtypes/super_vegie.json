@@ -1,0 +1,26 @@
+{
+  "Code": "super_vegie",
+  "CreativeInventory": {
+    "General": [
+      "*"
+    ]
+  },
+  "Texture": {
+    "Base": "item/Blue Glowberry Extract"
+  },
+  "Shape": {
+    "Base": "item/ingotshiny"
+  },
+  "NutritionProps": {
+    "FoodCategory": "System.Windows.Controls.ComboBoxItem: Vegetable",
+    "Satiety": 20,
+    "Health": 8,
+    "Nutrition": {
+      "Fruit": 0,
+      "Vegetable": 20,
+      "Protein": 0,
+      "Grain": 0,
+      "Dairy": 0
+    }
+  }
+}

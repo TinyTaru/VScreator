@@ -162,6 +162,16 @@ public partial class ItemCreationWindow : Window
         // This method is required for the XAML but we don't need to do anything special here
     }
 
+    private void IsFoodCheckBox_Checked(object sender, RoutedEventArgs e)
+    {
+        FoodPropsGroupBox.Visibility = Visibility.Visible;
+    }
+
+    private void IsFoodCheckBox_Unchecked(object sender, RoutedEventArgs e)
+    {
+        FoodPropsGroupBox.Visibility = Visibility.Collapsed;
+    }
+
     private void CreateItemButton_Click(object sender, RoutedEventArgs e)
     {
         // Validate inputs
@@ -173,6 +183,28 @@ public partial class ItemCreationWindow : Window
             MessageBox.Show("Please fill in all fields (Name, ID, and select a texture and shape).",
                            "Missing Information", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
+        }
+
+        // Validate food properties if item is marked as food
+        if (IsFoodCheckBox.IsChecked == true)
+        {
+            if (string.IsNullOrWhiteSpace(SatietyTextBox.Text) ||
+                string.IsNullOrWhiteSpace(HealthTextBox.Text) ||
+                FoodCategoryComboBox.SelectedItem == null)
+            {
+                MessageBox.Show("Please fill in all food properties (Satiety, Health, and Food Category).",
+                               "Missing Food Information", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // Validate numeric fields
+            if (!double.TryParse(SatietyTextBox.Text, out double satiety) ||
+                !double.TryParse(HealthTextBox.Text, out double health))
+            {
+                MessageBox.Show("Please enter valid numbers for Satiety and Health.",
+                               "Invalid Input", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
         }
 
         try
@@ -201,6 +233,25 @@ public partial class ItemCreationWindow : Window
                     Base = $"item/{ShapeComboBox.SelectedItem.ToString()}"
                 }
             };
+
+            // Add nutrition properties if item is marked as food
+            if (IsFoodCheckBox.IsChecked == true)
+            {
+                itemData.NutritionProps = new NutritionProps
+                {
+                    FoodCategory = FoodCategoryComboBox.SelectedItem.ToString(),
+                    Satiety = double.Parse(SatietyTextBox.Text),
+                    Health = double.Parse(HealthTextBox.Text),
+                    Nutrition = new Nutrition
+                    {
+                        Fruit = double.Parse(FruitNutritionTextBox.Text),
+                        Vegetable = double.Parse(VegetableNutritionTextBox.Text),
+                        Protein = double.Parse(ProteinNutritionTextBox.Text),
+                        Grain = 0.0, // Default values for unused nutrition types
+                        Dairy = 0.0
+                    }
+                };
+            }
 
             string jsonContent = JsonSerializer.Serialize(itemData, new JsonSerializerOptions
             {
@@ -245,10 +296,19 @@ public partial class ItemCreationWindow : Window
             File.WriteAllText(itemFilePath, jsonContent);
 
             string action = isEditing ? "updated" : "created";
+            string foodInfo = "";
+            if (IsFoodCheckBox.IsChecked == true)
+            {
+                foodInfo = $"\nFood Category: {FoodCategoryComboBox.SelectedItem}\n" +
+                          $"Satiety: {SatietyTextBox.Text}\n" +
+                          $"Health: {HealthTextBox.Text}";
+            }
+
             MessageBox.Show($"Item '{ItemNameTextBox.Text}' has been {action} successfully!\n\n" +
                            $"ID: {ItemIdTextBox.Text}\n" +
                            $"Texture: {TextureComboBox.SelectedItem}\n" +
-                           $"Shape: {ShapeComboBox.SelectedItem}\n" +
+                           $"Shape: {ShapeComboBox.SelectedItem}" +
+                           foodInfo + $"\n" +
                            $"Location: {itemFilePath}",
                            $"Item {action}", MessageBoxButton.OK, MessageBoxImage.Information);
 
@@ -291,6 +351,22 @@ public partial class ItemCreationWindow : Window
             {
                 string shapeName = shapeBase.Substring(5); // Remove "item/" prefix
                 ShapeComboBox.SelectedItem = shapeName;
+            }
+
+            // Set food properties if they exist
+            if (_existingItemData.NutritionProps != null)
+            {
+                IsFoodCheckBox.IsChecked = true;
+                FoodCategoryComboBox.SelectedItem = _existingItemData.NutritionProps.FoodCategory;
+                SatietyTextBox.Text = _existingItemData.NutritionProps.Satiety.ToString();
+                HealthTextBox.Text = _existingItemData.NutritionProps.Health.ToString();
+
+                if (_existingItemData.NutritionProps.Nutrition != null)
+                {
+                    FruitNutritionTextBox.Text = _existingItemData.NutritionProps.Nutrition.Fruit.ToString();
+                    VegetableNutritionTextBox.Text = _existingItemData.NutritionProps.Nutrition.Vegetable.ToString();
+                    ProteinNutritionTextBox.Text = _existingItemData.NutritionProps.Nutrition.Protein.ToString();
+                }
             }
 
             // Update the window title to indicate editing mode
@@ -442,6 +518,7 @@ public class ItemData
     public CreativeInventory CreativeInventory { get; set; } = new();
     public ItemTexture Texture { get; set; } = new();
     public ItemShape Shape { get; set; } = new();
+    public NutritionProps? NutritionProps { get; set; } = null;
 }
 
 public class CreativeInventory
@@ -457,4 +534,21 @@ public class ItemTexture
 public class ItemShape
 {
     public string Base { get; set; } = "";
+}
+
+public class NutritionProps
+{
+    public string FoodCategory { get; set; } = "";
+    public double Satiety { get; set; }
+    public double Health { get; set; }
+    public Nutrition Nutrition { get; set; } = new();
+}
+
+public class Nutrition
+{
+    public double Fruit { get; set; }
+    public double Vegetable { get; set; }
+    public double Protein { get; set; }
+    public double Grain { get; set; }
+    public double Dairy { get; set; }
 }

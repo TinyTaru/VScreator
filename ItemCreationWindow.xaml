@@ -174,6 +174,61 @@
                 <TextBlock Text="Shape:" Style="{StaticResource ItemLabelStyle}"/>
                 <ComboBox x:Name="ShapeComboBox" Style="{StaticResource ItemComboBoxStyle}"
                           SelectionChanged="ShapeComboBox_SelectionChanged"/>
+
+                <!-- Food Item Section -->
+                <CheckBox x:Name="IsFoodCheckBox" Content="Is Item Food?"
+                          Foreground="#ffffff" Margin="0,20,0,10" Checked="IsFoodCheckBox_Checked" Unchecked="IsFoodCheckBox_Unchecked"/>
+
+                <GroupBox x:Name="FoodPropsGroupBox" Header="Food Props" Visibility="Collapsed" Margin="0,10,0,0">
+                    <GroupBox.Style>
+                        <Style TargetType="GroupBox">
+                            <Setter Property="Background" Value="#2f2d2b"/>
+                            <Setter Property="Foreground" Value="#ffffff"/>
+                            <Setter Property="BorderBrush" Value="#404040"/>
+                            <Setter Property="BorderThickness" Value="1"/>
+                            <Setter Property="Padding" Value="10"/>
+                            <Setter Property="Margin" Value="0,5"/>
+                        </Style>
+                    </GroupBox.Style>
+                    <StackPanel>
+                        <TextBlock Text="Food Category:" Style="{StaticResource ItemLabelStyle}" Margin="0,0,0,5"/>
+                        <ComboBox x:Name="FoodCategoryComboBox" Style="{StaticResource ItemComboBoxStyle}">
+                            <ComboBoxItem Content="Fruit"/>
+                            <ComboBoxItem Content="Vegetable"/>
+                            <ComboBoxItem Content="Protein"/>
+                            <ComboBoxItem Content="Grain"/>
+                            <ComboBoxItem Content="Dairy"/>
+                        </ComboBox>
+
+                        <TextBlock Text="Satiety:" Style="{StaticResource ItemLabelStyle}" Margin="0,15,0,5"/>
+                        <TextBox x:Name="SatietyTextBox" Style="{StaticResource ItemInputTextBoxStyle}" Text="20"/>
+
+                        <TextBlock Text="Health:" Style="{StaticResource ItemLabelStyle}" Margin="0,15,0,5"/>
+                        <TextBox x:Name="HealthTextBox" Style="{StaticResource ItemInputTextBoxStyle}" Text="8"/>
+
+                        <TextBlock Text="Nutrition:" Style="{StaticResource ItemLabelStyle}" Margin="0,15,0,5"/>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Text="Fruit:" Grid.Row="0" Grid.Column="0" Style="{StaticResource ItemLabelStyle}" Margin="0,5,10,5"/>
+                            <TextBox x:Name="FruitNutritionTextBox" Grid.Row="0" Grid.Column="1" Style="{StaticResource ItemInputTextBoxStyle}" Text="6" Margin="0,5"/>
+
+                            <TextBlock Text="Vegetable:" Grid.Row="1" Grid.Column="0" Style="{StaticResource ItemLabelStyle}" Margin="0,5,10,5"/>
+                            <TextBox x:Name="VegetableNutritionTextBox" Grid.Row="1" Grid.Column="1" Style="{StaticResource ItemInputTextBoxStyle}" Text="6" Margin="0,5"/>
+
+                            <TextBlock Text="Protein:" Grid.Row="2" Grid.Column="0" Style="{StaticResource ItemLabelStyle}" Margin="0,5,10,5"/>
+                            <TextBox x:Name="ProteinNutritionTextBox" Grid.Row="2" Grid.Column="1" Style="{StaticResource ItemInputTextBoxStyle}" Text="6" Margin="0,5"/>
+                        </Grid>
+                    </StackPanel>
+                </GroupBox>
             </StackPanel>
         </ScrollViewer>
 
