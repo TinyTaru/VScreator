@@ -90,6 +90,20 @@ public partial class ModCreationWindow : Window
                           $"Mod ID: {ModIdTextBox.Text}",
                           "Mod Created", MessageBoxButton.OK, MessageBoxImage.Information);
 
+            // Add to recent mods by accessing the main window
+            try
+            {
+                var mainWindow = Application.Current.MainWindow as MainWindow;
+                if (mainWindow != null)
+                {
+                    mainWindow.AddRecentMod(ModIdTextBox.Text, ModNameTextBox.Text, modDirectory);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Could not add mod to recent list: {ex.Message}");
+            }
+
             // Open the mod workspace
             var workspaceWindow = new ModWorkspaceWindow(ModIdTextBox.Text, ModNameTextBox.Text);
             workspaceWindow.Show();

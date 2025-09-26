@@ -84,15 +84,21 @@
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="10">
                         <TextBlock Text="Recent Mods" FontSize="16" FontWeight="SemiBold"
-                                   Margin="0,0,0,15" Foreground="#ffffff"/>
+                                    Margin="0,0,0,15" Foreground="#ffffff"/>
 
-                        <ListBox Background="Transparent" BorderThickness="0">
-                            <ListBoxItem Content="Recent Mod" Style="{StaticResource RecentModItemStyle}" Margin="0,2"/>
-                            <ListBoxItem Content="Recent Mod" Style="{StaticResource RecentModItemStyle}" Margin="0,2"/>
-                            <ListBoxItem Content="Recent Mod" Style="{StaticResource RecentModItemStyle}" Margin="0,2"/>
-                            <ListBoxItem Content="Recent Mod" Style="{StaticResource RecentModItemStyle}" Margin="0,2"/>
-                            <ListBoxItem Content="Recent Mod" Style="{StaticResource RecentModItemStyle}" Margin="0,2"/>
+                        <ListBox x:Name="RecentModsListBox" Background="Transparent" BorderThickness="0"
+                                 ItemsSource="{Binding RecentMods}" SelectionMode="Single">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <ListBoxItem Content="{Binding DisplayName}" Style="{StaticResource RecentModItemStyle}"
+                                                 Margin="0,2" MouseDoubleClick="RecentModItem_Click"/>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
                         </ListBox>
+
+                        <TextBlock x:Name="NoRecentModsText" Text="No recent mods" FontSize="12"
+                                   Margin="0,10,0,0" Foreground="#888888" HorizontalAlignment="Center"
+                                   Visibility="Collapsed"/>
                     </StackPanel>
                 </ScrollViewer>
             </Border>

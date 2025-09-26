@@ -11,24 +11,208 @@ using System.Windows.Shapes;
 using System.IO;
 using Microsoft.Win32;
 using System.Reflection;
+using System.Collections.ObjectModel;
+using System.Text.Json;
 
 namespace VScreator;
 
 /// <summary>
-/// Interaction logic for MainWindow.xaml
+/// Data model for recent mods
 /// </summary>
+public class RecentMod
+{
+    public string ModId { get; set; } = "";
+    public string ModName { get; set; } = "";
+    public string ModPath { get; set; } = "";
+    public DateTime LastOpened { get; set; } = DateTime.Now;
+    public string DisplayName => $"{ModName} ({ModId})";
+}
+
 public partial class MainWindow : Window
 {
+    private ObservableCollection<RecentMod> _recentMods = new ObservableCollection<RecentMod>();
+    private const string RecentModsFileName = "recentmods.json";
+    private string _recentModsFilePath = "";
+
+    public ObservableCollection<RecentMod> RecentMods => _recentMods;
+
     public MainWindow()
     {
         InitializeComponent();
+        DataContext = this;
+        InitializeRecentMods();
+        LoadRecentMods();
+        UpdateRecentModsVisibility();
+    }
+
+    private void InitializeRecentMods()
+    {
+        // Set up the file path for storing recent mods
+        string appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        string vsCreatorDataPath = System.IO.Path.Combine(appDataPath, "VScreator");
+        System.IO.Directory.CreateDirectory(vsCreatorDataPath);
+        _recentModsFilePath = System.IO.Path.Combine(vsCreatorDataPath, RecentModsFileName);
+    }
+
+    private void LoadRecentMods()
+    {
+        try
+        {
+            if (File.Exists(_recentModsFilePath))
+            {
+                string jsonContent = File.ReadAllText(_recentModsFilePath);
+                var recentMods = JsonSerializer.Deserialize<List<RecentMod>>(jsonContent);
+
+                if (recentMods != null)
+                {
+                    // Clear existing items and add loaded ones
+                    _recentMods.Clear();
+                    foreach (var mod in recentMods.OrderByDescending(m => m.LastOpened).Take(10))
+                    {
+                        _recentMods.Add(mod);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading recent mods: {ex.Message}");
+        }
+    }
+
+    private void SaveRecentMods()
+    {
+        try
+        {
+            var recentModsList = _recentMods.OrderByDescending(m => m.LastOpened).Take(10).ToList();
+            string jsonContent = JsonSerializer.Serialize(recentModsList, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(_recentModsFilePath, jsonContent);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error saving recent mods: {ex.Message}");
+        }
+    }
+
+    public void AddRecentMod(string modId, string modName, string modPath)
+    {
+        // Remove existing entry if it exists
+        var existingMod = _recentMods.FirstOrDefault(m => m.ModId == modId);
+        if (existingMod != null)
+        {
+            _recentMods.Remove(existingMod);
+        }
+
+        // Add new entry at the beginning
+        var recentMod = new RecentMod
+        {
+            ModId = modId,
+            ModName = modName,
+            ModPath = modPath,
+            LastOpened = DateTime.Now
+        };
+
+        _recentMods.Insert(0, recentMod);
+        SaveRecentMods();
+    }
+
+    private void RecentModItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is ListBoxItem listBoxItem && listBoxItem.DataContext is RecentMod recentMod)
+        {
+            try
+            {
+                // Validate the mod path still exists
+                if (!Directory.Exists(recentMod.ModPath))
+                {
+                    MessageBox.Show(
+                        $"The mod folder no longer exists at:\n{recentMod.ModPath}",
+                        "Mod Not Found",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+
+                    // Remove from recent mods
+                    _recentMods.Remove(recentMod);
+                    SaveRecentMods();
+                    return;
+                }
+
+                // Open the mod workspace
+                var modWorkspace = new ModWorkspaceWindow(recentMod.ModId, recentMod.ModName);
+                modWorkspace.ShowDialog();
+
+                // Update the last opened time
+                recentMod.LastOpened = DateTime.Now;
+                SaveRecentMods();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Failed to open mod workspace:\n\n{ex.Message}",
+                    "Workspace Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
     }
 
     private void NewModButton_Click(object sender, RoutedEventArgs e)
     {
         // Open the mod creation window
         var modCreationWindow = new ModCreationWindow();
-        modCreationWindow.ShowDialog();
+        var result = modCreationWindow.ShowDialog();
+
+        // If mod was created successfully, it will be added to recent mods by the ModCreationWindow
+        // For now, we'll refresh the recent mods list
+        LoadRecentMods();
+        UpdateRecentModsVisibility();
+    }
+
+    private void UpdateRecentModsVisibility()
+    {
+        // This method will be called after InitializeComponent to update visibility
+        // The UI elements will be available by their x:Name at runtime
+    }
+
+    private void RecentModItem_Click(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is ListBoxItem listBoxItem && listBoxItem.DataContext is RecentMod recentMod)
+        {
+            try
+            {
+                // Validate the mod path still exists
+                if (!Directory.Exists(recentMod.ModPath))
+                {
+                    MessageBox.Show(
+                        $"The mod folder no longer exists at:\n{recentMod.ModPath}",
+                        "Mod Not Found",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+
+                    // Remove from recent mods
+                    _recentMods.Remove(recentMod);
+                    SaveRecentMods();
+                    UpdateRecentModsVisibility();
+                    return;
+                }
+
+                // Open the mod workspace
+                var modWorkspace = new ModWorkspaceWindow(recentMod.ModId, recentMod.ModName);
+                modWorkspace.ShowDialog();
+
+                // Update the last opened time
+                recentMod.LastOpened = DateTime.Now;
+                SaveRecentMods();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Failed to open mod workspace:\n\n{ex.Message}",
+                    "Workspace Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
     }
 
     private void TestOpenExistingMod()
@@ -164,6 +348,10 @@ public partial class MainWindow : Window
                     // Open the mod workspace
                     var modWorkspace = new ModWorkspaceWindow(modInfo.Item1, modInfo.Item2);
                     modWorkspace.ShowDialog();
+
+                    // Add to recent mods
+                    AddRecentMod(modInfo.Item1, modInfo.Item2, selectedPath);
+                    UpdateRecentModsVisibility();
                 }
                 catch (Exception ex)
                 {
