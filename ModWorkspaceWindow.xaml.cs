@@ -53,8 +53,9 @@ public partial class ModWorkspaceWindow : Window
 
     private void AddRecipeButton_Click(object sender, RoutedEventArgs e)
     {
-        MessageBox.Show($"Add Recipe functionality will be implemented here.\n\nMod: {_modName}\nID: {_modId}",
-                        "Add Recipe", MessageBoxButton.OK, MessageBoxImage.Information);
+        // Open the recipe creation window with mod information
+        var recipeCreationWindow = new RecipeCreationWindow(_modId, _modName);
+        recipeCreationWindow.ShowDialog();
     }
 
     private void SettingsButton_Click(object sender, RoutedEventArgs e)

@@ -1,0 +1,38 @@
+{
+  "GridRecipe": {
+    "Description": "Example grid-based crafting recipe structure for Vintage Story",
+    "Format": {
+      "Pattern": [
+        ["", "stick", ""],
+        ["", "stick", ""],
+        ["stick", "", "stick"]
+      ],
+      "Key": {
+        "stick": {
+          "type": "item",
+          "code": "game:stick",
+          "quantity": 1
+        }
+      },
+      "Result": {
+        "type": "item",
+        "code": "game:tool-testing",
+        "quantity": 1
+      }
+    }
+  },
+  "RecipeTypes": [
+    "grid",
+    "knapping",
+    "clayforming",
+    "barrel",
+    "anvil"
+  ],
+  "GridSizes": [
+    "1x1",
+    "2x2",
+    "3x3",
+    "4x4",
+    "5x5"
+  ]
+}
