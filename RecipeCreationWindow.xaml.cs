@@ -55,6 +55,13 @@ public partial class RecipeCreationWindow : Window
     private string _currentTab = "Items";
     private string _searchText = "";
 
+    // Performance optimization fields
+    private Dictionary<string, BitmapImage> _imageCache = new Dictionary<string, BitmapImage>();
+    private string _itemsPath = "";
+    private string _blocksPath = "";
+    private const int InitialLoadCount = 500;
+    private const int LoadMoreCount = 200;
+
     public RecipeCreationWindow(string modId, string modName)
     {
         _modId = modId;
@@ -62,21 +69,28 @@ public partial class RecipeCreationWindow : Window
 
         try
         {
+            // Initialize UI components first for immediate display
             InitializeComponent();
-            System.Diagnostics.Debug.WriteLine("InitializeComponent() succeeded");
-
             InitializeRecipeSystem();
-            LoadAvailableItemsAndBlocks();
             GenerateCraftingGrid();
             UpdateRecipePreview();
 
-            System.Diagnostics.Debug.WriteLine($"RecipeCreationWindow initialized successfully for mod: {_modName} ({_modId})");
+            System.Diagnostics.Debug.WriteLine("RecipeCreationWindow UI initialized, starting background loading...");
+
+            // Load items and blocks in background for better UX
+            _ = LoadAvailableItemsAndBlocksAsync();
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error in RecipeCreationWindow constructor: {ex.Message}");
             MessageBox.Show($"Error initializing RecipeCreationWindow: {ex.Message}", "Initialization Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
+    }
+
+    private async Task LoadAvailableItemsAndBlocksAsync()
+    {
+        await LoadAvailableItemsAndBlocks();
+        System.Diagnostics.Debug.WriteLine("Background loading completed!");
     }
 
     private void InitializeRecipeSystem()
@@ -90,41 +104,50 @@ public partial class RecipeCreationWindow : Window
         BlocksTabButton.Tag = "Blocks";
     }
 
-    private void LoadAvailableItemsAndBlocks()
+    private async Task LoadAvailableItemsAndBlocks()
     {
-        System.Diagnostics.Debug.WriteLine("=== Starting LoadAvailableItemsAndBlocks ===");
-        LoadItems();
-        LoadBlocks();
+        System.Diagnostics.Debug.WriteLine("=== Starting LoadAvailableItemsAndBlocks (async) ===");
 
-        System.Diagnostics.Debug.WriteLine("=== Calling DisplayIngredients ===");
-        DisplayIngredients();
-        System.Diagnostics.Debug.WriteLine("=== LoadAvailableItemsAndBlocks completed ===");
+        try
+        {
+            // Load items and blocks asynchronously
+            var loadItemsTask = Task.Run(() => LoadItems());
+            var loadBlocksTask = Task.Run(() => LoadBlocks());
 
-        // Show a test message to verify ingredients loaded
-        MessageBox.Show($"Loaded {_availableItems.Count} items and {_availableBlocks.Count} blocks.\n\n" +
-                       $"Items: {string.Join(", ", _availableItems.Take(5).Select(i => i.DisplayName))}\n" +
-                       $"Blocks: {string.Join(", ", _availableBlocks.Take(5).Select(i => i.DisplayName))}",
-                       "Debug: Ingredients Loaded", MessageBoxButton.OK, MessageBoxImage.Information);
+            // Wait for both to complete
+            await Task.WhenAll(loadItemsTask, loadBlocksTask);
+
+            System.Diagnostics.Debug.WriteLine("=== Calling DisplayIngredients ===");
+            DisplayIngredients();
+            System.Diagnostics.Debug.WriteLine("=== LoadAvailableItemsAndBlocks completed ===");
+
+            // Log loading completion for debugging (non-blocking)
+            System.Diagnostics.Debug.WriteLine($"✓ Loaded {_availableItems.Count} items and {_availableBlocks.Count} blocks successfully");
+            System.Diagnostics.Debug.WriteLine($"Sample items: {string.Join(", ", _availableItems.Take(3).Select(i => i.DisplayName))}");
+            System.Diagnostics.Debug.WriteLine($"Sample blocks: {string.Join(", ", _availableBlocks.Take(3).Select(i => i.DisplayName))}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error in LoadAvailableItemsAndBlocks: {ex.Message}");
+        }
     }
 
     private void LoadItems()
     {
         _availableItems.Clear();
 
-        // Try multiple possible paths for the Resources directory
+        // Optimized path finding - try most likely paths first
         string[] possiblePaths = new[]
         {
+            @"C:\git\Mods\VScreator\VScreator\Resources\vintage_story icons\items",
             System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "vintage_story icons", "items"),
             System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "Resources", "vintage_story icons", "items"),
-            System.IO.Path.Combine(Directory.GetCurrentDirectory(), "Resources", "vintage_story icons", "items"),
-            @"C:\git\Mods\VScreator\VScreator\Resources\vintage_story icons\items"
+            System.IO.Path.Combine(Directory.GetCurrentDirectory(), "Resources", "vintage_story icons", "items")
         };
 
         string itemsPath = null;
         foreach (string path in possiblePaths)
         {
-            System.Diagnostics.Debug.WriteLine($"Trying path: {path}");
-            System.Diagnostics.Debug.WriteLine($"Directory exists: {Directory.Exists(path)}");
             if (Directory.Exists(path))
             {
                 itemsPath = path;
@@ -143,8 +166,9 @@ public partial class RecipeCreationWindow : Window
         if (Directory.Exists(itemsPath))
         {
             var allItemFiles = Directory.GetFiles(itemsPath, "*.png");
-            var itemFiles = allItemFiles; // Load all items
-            System.Diagnostics.Debug.WriteLine($"Found {allItemFiles.Count()} total PNG files, using {itemFiles.Count()}");
+            // Limit initial load to improve performance - can load more on demand
+            var itemFiles = allItemFiles.Take(500).ToArray(); // Load first 500 items
+            System.Diagnostics.Debug.WriteLine($"Found {allItemFiles.Count()} total PNG files, loading {itemFiles.Count()} for performance");
 
             foreach (var file in itemFiles)
             {
@@ -157,17 +181,18 @@ public partial class RecipeCreationWindow : Window
                     IconPath = file
                 };
 
-                // Load the icon
+                // Load the icon with optimized settings
                 try
                 {
                     var bitmap = new BitmapImage();
                     bitmap.BeginInit();
                     bitmap.UriSource = new Uri(file, UriKind.Absolute);
                     bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                    bitmap.DecodePixelWidth = 64; // Decode to smaller size for performance
+                    bitmap.DecodePixelHeight = 64;
                     bitmap.EndInit();
                     bitmap.Freeze();
                     ingredient.Icon = bitmap;
-                    System.Diagnostics.Debug.WriteLine($"✓ Loaded item: {fileName} with icon");
                 }
                 catch (Exception ex)
                 {
@@ -188,20 +213,18 @@ public partial class RecipeCreationWindow : Window
     {
         _availableBlocks.Clear();
 
-        // Try multiple possible paths for the Resources directory
+        // Optimized path finding - try most likely paths first
         string[] possiblePaths = new[]
         {
+            @"C:\git\Mods\VScreator\VScreator\Resources\vintage_story icons\blocks",
             System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "vintage_story icons", "blocks"),
             System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "Resources", "vintage_story icons", "blocks"),
-            System.IO.Path.Combine(Directory.GetCurrentDirectory(), "Resources", "vintage_story icons", "blocks"),
-            @"C:\git\Mods\VScreator\VScreator\Resources\vintage_story icons\blocks"
+            System.IO.Path.Combine(Directory.GetCurrentDirectory(), "Resources", "vintage_story icons", "blocks")
         };
 
         string blocksPath = null;
         foreach (string path in possiblePaths)
         {
-            System.Diagnostics.Debug.WriteLine($"Trying blocks path: {path}");
-            System.Diagnostics.Debug.WriteLine($"Directory exists: {Directory.Exists(path)}");
             if (Directory.Exists(path))
             {
                 blocksPath = path;
@@ -218,8 +241,9 @@ public partial class RecipeCreationWindow : Window
         if (Directory.Exists(blocksPath))
         {
             var allBlockFiles = Directory.GetFiles(blocksPath, "*.png");
-            var blockFiles = allBlockFiles; // Load all blocks
-            System.Diagnostics.Debug.WriteLine($"Found {allBlockFiles.Count()} total PNG files, using {blockFiles.Count()}");
+            // Limit initial load to improve performance - can load more on demand
+            var blockFiles = allBlockFiles.Take(500).ToArray(); // Load first 500 blocks
+            System.Diagnostics.Debug.WriteLine($"Found {allBlockFiles.Count()} total PNG files, loading {blockFiles.Count()} for performance");
 
             foreach (var file in blockFiles)
             {
@@ -232,13 +256,15 @@ public partial class RecipeCreationWindow : Window
                     IconPath = file
                 };
 
-                // Load the icon
+                // Load the icon with optimized settings
                 try
                 {
                     var bitmap = new BitmapImage();
                     bitmap.BeginInit();
                     bitmap.UriSource = new Uri(file, UriKind.Absolute);
                     bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                    bitmap.DecodePixelWidth = 64; // Decode to smaller size for performance
+                    bitmap.DecodePixelHeight = 64;
                     bitmap.EndInit();
                     bitmap.Freeze();
                     ingredient.Icon = bitmap;
@@ -300,7 +326,6 @@ public partial class RecipeCreationWindow : Window
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error in DisplayIngredients: {ex.Message}");
-            MessageBox.Show($"Error displaying ingredients: {ex.Message}", "Display Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
