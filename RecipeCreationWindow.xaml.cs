@@ -46,6 +46,9 @@ public partial class RecipeCreationWindow : Window
     private readonly string _modId;
     private readonly string _modName;
     private GridRecipe _currentRecipe = new GridRecipe();
+    private GridRecipeData? _existingRecipeData = null;
+    private string _existingRecipeName = "";
+    private Action? _refreshCallback = null;
     private ObservableCollection<RecipeIngredient> _availableItems = new ObservableCollection<RecipeIngredient>();
     private ObservableCollection<RecipeIngredient> _availableBlocks = new ObservableCollection<RecipeIngredient>();
     private ObservableCollection<RecipeIngredient> _filteredIngredients = new ObservableCollection<RecipeIngredient>();
@@ -87,10 +90,48 @@ public partial class RecipeCreationWindow : Window
         }
     }
 
+    // Constructor for editing existing recipes
+    public RecipeCreationWindow(string modId, string modName, GridRecipeData existingRecipeData, string existingRecipeName, Action refreshCallback)
+    {
+        _modId = modId;
+        _modName = modName;
+        _existingRecipeData = existingRecipeData;
+        _existingRecipeName = existingRecipeName;
+        _refreshCallback = refreshCallback;
+
+        try
+        {
+            // Initialize UI components first for immediate display
+            InitializeComponent();
+            InitializeRecipeSystem();
+            GenerateCraftingGrid();
+            UpdateRecipePreview();
+
+            System.Diagnostics.Debug.WriteLine("RecipeCreationWindow UI initialized, starting background loading...");
+
+            // Load items and blocks in background for better UX
+            _ = LoadAvailableItemsAndBlocksAsync();
+
+            // Pre-fill the form with existing recipe data
+            PreFillFormWithExistingData();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error in RecipeCreationWindow constructor: {ex.Message}");
+            MessageBox.Show($"Error initializing RecipeCreationWindow: {ex.Message}", "Initialization Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
     private async Task LoadAvailableItemsAndBlocksAsync()
     {
         await LoadAvailableItemsAndBlocks();
         System.Diagnostics.Debug.WriteLine("Background loading completed!");
+
+        // If we're editing a recipe, populate the grid with existing ingredients
+        if (_existingRecipeData != null)
+        {
+            PopulateGridWithExistingIngredients();
+        }
     }
 
     private void InitializeRecipeSystem()
@@ -102,6 +143,164 @@ public partial class RecipeCreationWindow : Window
         // Set up event handlers
         ItemsTabButton.Tag = "Items";
         BlocksTabButton.Tag = "Blocks";
+    }
+
+    private void PreFillFormWithExistingData()
+    {
+        if (_existingRecipeData != null)
+        {
+            // Pre-fill the form fields with existing data
+            RecipeNameTextBox.Text = _existingRecipeName;
+            OutputQuantityTextBox.Text = _existingRecipeData.recipe.output.quantity.ToString();
+
+            // Set grid size based on recipe dimensions
+            _currentGridSize = _existingRecipeData.recipe.width;
+
+            // Set output ingredient first
+            var outputIngredient = new RecipeIngredient
+            {
+                Type = _existingRecipeData.recipe.output.type,
+                Code = _existingRecipeData.recipe.output.code,
+                Quantity = _existingRecipeData.recipe.output.quantity,
+                DisplayName = _existingRecipeData.recipe.output.code.Replace("game:", "").Replace("-", " ").Replace("_", " ")
+            };
+
+            // Find the output ingredient in available items/blocks
+            var availableIngredient = _availableItems.Concat(_availableBlocks)
+                .FirstOrDefault(i => i.Code == _existingRecipeData.recipe.output.code);
+
+            if (availableIngredient != null)
+            {
+                outputIngredient.Icon = availableIngredient.Icon;
+                outputIngredient.IconPath = availableIngredient.IconPath;
+            }
+
+            _selectedOutput = outputIngredient;
+
+            // Initialize the recipe pattern structure
+            _currentRecipe.Pattern.Clear();
+            for (int i = 0; i < _currentGridSize; i++)
+            {
+                _currentRecipe.Pattern.Add(new List<string>(new string[_currentGridSize]));
+            }
+
+            // Fill the pattern based on ingredientPattern
+            string pattern = _existingRecipeData.recipe.ingredientPattern;
+            for (int i = 0; i < pattern.Length && i < _currentGridSize * _currentGridSize; i++)
+            {
+                int row = i / _currentGridSize;
+                int col = i % _currentGridSize;
+
+                if (pattern[i] == 'X')
+                {
+                    // Find the ingredient for this position by checking all ingredients
+                    foreach (var kvp in _existingRecipeData.recipe.ingredients)
+                    {
+                        if (kvp.Value != null)
+                        {
+                            _currentRecipe.Pattern[row][col] = kvp.Value.code;
+                            break; // Found the ingredient for this position
+                        }
+                    }
+                }
+            }
+
+            // Update the window title to indicate editing mode
+            this.Title = $"Edit Recipe - {_modName}";
+
+            // Update the button text to indicate editing mode
+            CreateRecipeButton.Content = "Update Recipe";
+        }
+    }
+
+    private void PopulateGridWithExistingIngredients()
+    {
+        if (_existingRecipeData == null) return;
+
+        // Wait a bit for UI to be fully initialized, then populate the grid
+        Dispatcher.InvokeAsync(() =>
+        {
+            try
+            {
+                // Clear existing grid first
+                foreach (var child in CraftingGrid.Children.OfType<Border>())
+                {
+                    child.Child = null;
+                }
+
+                // Set grid size if different from current
+                if (_currentGridSize != _existingRecipeData.recipe.width)
+                {
+                    _currentGridSize = _existingRecipeData.recipe.width;
+                    GenerateCraftingGrid();
+                }
+
+                // Populate grid cells with existing ingredients
+                string pattern = _existingRecipeData.recipe.ingredientPattern;
+                for (int i = 0; i < pattern.Length && i < _currentGridSize * _currentGridSize; i++)
+                {
+                    int row = i / _currentGridSize;
+                    int col = i % _currentGridSize;
+
+                    if (pattern[i] == 'X' && !string.IsNullOrEmpty(_currentRecipe.Pattern[row][col]))
+                    {
+                        string ingredientCode = _currentRecipe.Pattern[row][col];
+
+                        // Find the ingredient data
+                        var ingredientData = _existingRecipeData.recipe.ingredients.FirstOrDefault(kvp => kvp.Key == ingredientCode);
+                        if (ingredientData.Value != null)
+                        {
+                            var ingredient = new RecipeIngredient
+                            {
+                                Type = ingredientData.Value.type,
+                                Code = ingredientData.Value.code,
+                                Quantity = ingredientData.Value.quantity,
+                                DisplayName = ingredientData.Value.code.Replace("game:", "").Replace("-", " ").Replace("_", " ")
+                            };
+
+                            // Find the ingredient in available items/blocks for icon
+                            var availableIng = _availableItems.Concat(_availableBlocks)
+                                .FirstOrDefault(item => item.Code == ingredientData.Value.code);
+
+                            if (availableIng != null)
+                            {
+                                ingredient.Icon = availableIng.Icon;
+                                ingredient.IconPath = availableIng.IconPath;
+                            }
+
+                            // Find the grid cell and add the visual
+                            var cell = CraftingGrid.Children
+                                .OfType<Border>()
+                                .FirstOrDefault(c => c.Tag?.ToString() == $"{row},{col}");
+
+                            if (cell != null)
+                            {
+                                var image = new Image
+                                {
+                                    Source = ingredient.Icon,
+                                    Width = 48,
+                                    Height = 48,
+                                    Stretch = Stretch.Uniform,
+                                    Tag = ingredient
+                                };
+                                cell.Child = image;
+                            }
+                        }
+                    }
+                }
+
+                // Update output slot after grid is populated
+                UpdateOutputSlotForEditing();
+                UpdateRecipeIngredients();
+                UpdateRecipePreview();
+
+                System.Diagnostics.Debug.WriteLine($"Grid populated with {_existingRecipeData.recipe.ingredients.Count} ingredients");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error populating grid: {ex.Message}");
+            }
+        }, System.Windows.Threading.DispatcherPriority.Background);
     }
 
     private async Task LoadAvailableItemsAndBlocks()
@@ -782,18 +981,44 @@ public partial class RecipeCreationWindow : Window
 
             // Generate recipe JSON
             string recipeJson = GenerateRecipeJson();
+
+            // Check if we're editing an existing recipe
+            bool isEditing = _existingRecipeData != null;
+
+            if (isEditing)
+            {
+                // For editing, we need to check if the recipe name changed
+                string oldRecipeName = _existingRecipeName;
+                string newRecipeName = _currentRecipe.RecipeName;
+
+                if (oldRecipeName != newRecipeName)
+                {
+                    // Recipe name changed, remove old file
+                    string oldRecipeFilePath = Path.Combine(GetModDirectory(), "assets", _modId, "recipes", "grid", $"{oldRecipeName}.json");
+                    if (File.Exists(oldRecipeFilePath))
+                    {
+                        File.Delete(oldRecipeFilePath);
+                    }
+                }
+            }
+
             SaveRecipeFile(recipeJson);
 
-            MessageBox.Show($"Recipe '{_currentRecipe.RecipeName}' has been created successfully!\n\n" +
+            string action = isEditing ? "updated" : "created";
+
+            MessageBox.Show($"Recipe '{_currentRecipe.RecipeName}' has been {action} successfully!\n\n" +
                            $"Saved to: mods/{_modId}/assets/{_modId}/recipes/grid/{_currentRecipe.RecipeName}.json\n" +
                            $"Mod: {_modName}\n" +
                            $"Ingredients: {_currentRecipe.Ingredients.Count}\n" +
                            $"Grid Size: {_currentGridSize}x{_currentGridSize}\n" +
                            $"Output: {_selectedOutput.DisplayName}",
-                           "Recipe Created", MessageBoxButton.OK, MessageBoxImage.Information);
+                           $"Recipe {action}", MessageBoxButton.OK, MessageBoxImage.Information);
 
-            // Reset for new recipe
-            ResetRecipe();
+            // Call the refresh callback to update the recipes list in the parent window
+            _refreshCallback?.Invoke();
+
+            // Close the window
+            this.Close();
         }
         catch (Exception ex)
         {
@@ -1197,6 +1422,49 @@ public partial class RecipeCreationWindow : Window
                 OutputSlotText.Text = "Drop item here";
                 OutputSlotText.Foreground = Brushes.Gray;
             }
+        }
+    }
+
+    private void UpdateOutputSlotForEditing()
+    {
+        if (_existingRecipeData != null && _selectedOutput != null)
+        {
+            // For editing mode, ensure the output slot shows the existing recipe's output
+            try
+            {
+                // Find the output ingredient in available items/blocks for proper icon
+                var availableIngredient = _availableItems.Concat(_availableBlocks)
+                    .FirstOrDefault(i => i.Code == _existingRecipeData.recipe.output.code);
+
+                if (availableIngredient != null && _selectedOutput != null)
+                {
+                    // Update the selected output with the proper icon if available
+                    _selectedOutput.Icon = availableIngredient.Icon;
+                    _selectedOutput.IconPath = availableIngredient.IconPath;
+                }
+
+                // Update the output slot display
+                if (OutputSlotImage != null)
+                {
+                    OutputSlotImage.Source = _selectedOutput.Icon;
+                }
+                if (OutputSlotText != null)
+                {
+                    OutputSlotText.Text = _selectedOutput.DisplayName;
+                    OutputSlotText.Foreground = Brushes.White;
+                }
+
+                System.Diagnostics.Debug.WriteLine($"Updated output slot for editing: {_selectedOutput.DisplayName}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error updating output slot for editing: {ex.Message}");
+            }
+        }
+        else
+        {
+            // Fallback to regular update if not in editing mode
+            UpdateOutputSlot();
         }
     }
 }

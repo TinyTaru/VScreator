@@ -58,6 +58,62 @@ public partial class ModWorkspaceWindow : Window
         recipeCreationWindow.ShowDialog();
     }
 
+    private void EditRecipeButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var button = sender as Button;
+            if (button != null)
+            {
+                string recipeName = button.Tag as string;
+                if (!string.IsNullOrEmpty(recipeName))
+                {
+                    EditRecipe(recipeName);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error editing recipe: {ex.Message}", "Edit Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void EditRecipe(string recipeName)
+    {
+        try
+        {
+            string modDirectory = GetModDirectory();
+            string recipesPath = Path.Combine(modDirectory, "assets", _modId, "recipes", "grid");
+            string recipeFilePath = Path.Combine(recipesPath, $"{recipeName}.json");
+
+            if (!File.Exists(recipeFilePath))
+            {
+                MessageBox.Show($"Recipe file not found: {recipeFilePath}", "File Not Found", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            string jsonContent = File.ReadAllText(recipeFilePath);
+            var recipeData = System.Text.Json.JsonSerializer.Deserialize<GridRecipeData>(jsonContent);
+
+            if (recipeData != null)
+            {
+                // Open RecipeCreationWindow with pre-filled data and refresh callback
+                var recipeCreationWindow = new RecipeCreationWindow(_modId, _modName, recipeData, recipeName, RefreshRecipesList);
+                recipeCreationWindow.ShowDialog();
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading recipe for editing: {ex.Message}", "Edit Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void RefreshRecipesList()
+    {
+        // Refresh the recipes list by reloading from disk
+        LoadRecipes();
+    }
+
     private void SettingsButton_Click(object sender, RoutedEventArgs e)
     {
         MessageBox.Show($"Mod settings will be implemented here.\n\nMod: {_modName}\nID: {_modId}",
@@ -95,9 +151,10 @@ public partial class ModWorkspaceWindow : Window
             ResourcesTabContent.Visibility = Visibility.Collapsed;
             DeleteTextureButton.Visibility = Visibility.Collapsed;
 
-            // Load items and blocks when switching to Content tab
+            // Load items, blocks, and recipes when switching to Content tab
             LoadItems();
             LoadBlocks();
+            LoadRecipes();
         }
         else if (tabName == "Resources")
         {
@@ -822,6 +879,64 @@ public partial class ModWorkspaceWindow : Window
         }
     }
 
+    private void LoadRecipes()
+    {
+        try
+        {
+            // Clear existing recipes
+            RecipesListView.Items.Clear();
+
+            string modDirectory = GetModDirectory();
+            string recipesPath = Path.Combine(modDirectory, "assets", _modId, "recipes", "grid");
+
+            if (!Directory.Exists(recipesPath))
+            {
+                // No recipes found yet
+                RecipesHeader.Text = "Recipes: (No recipes created yet)";
+                return;
+            }
+
+            string[] recipeFiles = Directory.GetFiles(recipesPath, "*.json");
+
+            foreach (string recipeFile in recipeFiles)
+            {
+                try
+                {
+                    string recipeName = Path.GetFileNameWithoutExtension(recipeFile);
+                    string jsonContent = File.ReadAllText(recipeFile);
+
+                    // Parse the recipe data
+                    var recipeData = System.Text.Json.JsonSerializer.Deserialize<GridRecipeData>(jsonContent);
+                    if (recipeData != null)
+                    {
+                        var recipeViewModel = new RecipeViewModel
+                        {
+                            Name = recipeName,
+                            OutputType = recipeData.recipe.output.type,
+                            OutputCode = recipeData.recipe.output.code,
+                            OutputQuantity = recipeData.recipe.output.quantity,
+                            IngredientCount = recipeData.recipe.ingredients.Count,
+                            GridSize = $"{recipeData.recipe.width}x{recipeData.recipe.height}"
+                        };
+
+                        RecipesListView.Items.Add(recipeViewModel);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error loading recipe {recipeFile}: {ex.Message}");
+                }
+            }
+
+            // Update header based on recipe count
+            RecipesHeader.Text = $"Recipes: ({RecipesListView.Items.Count})";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading recipes: {ex.Message}", "Load Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
     private string GetItemNameFromEnJson(string itemCode)
     {
         try
@@ -1030,4 +1145,45 @@ public class BlockViewModel
     public string Name { get; set; } = "";
     public string Type { get; set; } = "";
     public double Resistance { get; set; }
+}
+
+// View model for recipes list
+public class RecipeViewModel
+{
+    public string Name { get; set; } = "";
+    public string OutputType { get; set; } = "";
+    public string OutputCode { get; set; } = "";
+    public int OutputQuantity { get; set; }
+    public int IngredientCount { get; set; }
+    public string GridSize { get; set; } = "";
+}
+
+// Data model for grid-based recipes (for JSON deserialization)
+public class GridRecipeData
+{
+    public bool enabled { get; set; }
+    public GridRecipeContent recipe { get; set; } = new GridRecipeContent();
+}
+
+public class GridRecipeContent
+{
+    public string ingredientPattern { get; set; } = "";
+    public Dictionary<string, RecipeIngredientData> ingredients { get; set; } = new Dictionary<string, RecipeIngredientData>();
+    public int width { get; set; }
+    public int height { get; set; }
+    public RecipeOutputData output { get; set; } = new RecipeOutputData();
+}
+
+public class RecipeIngredientData
+{
+    public string type { get; set; } = "";
+    public string code { get; set; } = "";
+    public int quantity { get; set; }
+}
+
+public class RecipeOutputData
+{
+    public string type { get; set; } = "";
+    public string code { get; set; } = "";
+    public int quantity { get; set; }
 }

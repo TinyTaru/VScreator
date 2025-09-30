@@ -292,6 +292,69 @@
                                                 </DataTemplate>
                                             </ListView.ItemTemplate>
                                         </ListView>
+
+                                        <!-- Recipes Section -->
+                                        <TextBlock x:Name="RecipesHeader"
+                                                   Text="Recipes:"
+                                                   Style="{StaticResource WorkspaceLabelStyle}"
+                                                   Margin="0,30,0,15"/>
+
+                                        <ListView x:Name="RecipesListView"
+                                                  Background="Transparent"
+                                                  BorderThickness="0">
+                                            <ListView.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Background="#2f2d2b" Margin="5" Padding="10" CornerRadius="3">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="200"/>
+                                                                <ColumnDefinition Width="150"/>
+                                                                <ColumnDefinition Width="100"/>
+                                                                <ColumnDefinition Width="100"/>
+                                                                <ColumnDefinition Width="100"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                            </Grid.ColumnDefinitions>
+
+                                                            <TextBlock Text="{Binding Name}"
+                                                                       Foreground="#ffffff"
+                                                                       FontSize="14"
+                                                                       FontWeight="SemiBold"
+                                                                       Grid.Column="0"/>
+
+                                                            <TextBlock Text="{Binding OutputType}"
+                                                                       Foreground="#cccccc"
+                                                                       FontSize="12"
+                                                                       Grid.Column="1"/>
+
+                                                            <TextBlock Text="{Binding OutputCode}"
+                                                                       Foreground="#cccccc"
+                                                                       FontSize="12"
+                                                                       Grid.Column="2"/>
+
+                                                            <TextBlock Text="{Binding IngredientCount}"
+                                                                       Foreground="#cccccc"
+                                                                       FontSize="12"
+                                                                       Grid.Column="3"/>
+
+                                                            <TextBlock Text="{Binding GridSize}"
+                                                                       Foreground="#cccccc"
+                                                                       FontSize="12"
+                                                                       Grid.Column="4"/>
+
+                                                            <Button Content="Edit"
+                                                                    Tag="{Binding Name}"
+                                                                    Click="EditRecipeButton_Click"
+                                                                    Style="{StaticResource SidebarButtonStyle}"
+                                                                    Width="60"
+                                                                    Height="25"
+                                                                    FontSize="10"
+                                                                    Grid.Column="5"
+                                                                    HorizontalAlignment="Right"/>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ListView.ItemTemplate>
+                                        </ListView>
                                     </StackPanel>
                                 </ScrollViewer>
 
