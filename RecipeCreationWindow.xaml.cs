@@ -604,6 +604,7 @@ public partial class RecipeCreationWindow : Window
                 };
 
                 cell.MouseLeftButtonDown += GridCell_Click;
+                cell.MouseRightButtonDown += GridCell_RightClick;
                 cell.MouseEnter += (s, e) => HighlightCell(cell, true);
                 cell.MouseLeave += (s, e) => HighlightCell(cell, false);
                 cell.DragEnter += GridCell_DragEnter;
@@ -667,6 +668,30 @@ public partial class RecipeCreationWindow : Window
             UpdateRecipeIngredients();
             UpdateRecipePreview();
         }
+    }
+
+    private void GridCell_RightClick(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is Border cell)
+        {
+            string[] coords = cell.Tag.ToString().Split(',');
+            int row = int.Parse(coords[0]);
+            int col = int.Parse(coords[1]);
+
+            // Empty the slot regardless of current state
+            _currentRecipe.Pattern[row][col] = null;
+
+            // Remove any visual content from the cell
+            cell.Child = null;
+
+            UpdateRecipeIngredients();
+            UpdateRecipePreview();
+
+            System.Diagnostics.Debug.WriteLine($"Right-click: Emptied grid cell at position ({row},{col})");
+        }
+
+        // Mark event as handled to prevent context menu
+        e.Handled = true;
     }
 
     private void UpdateRecipeIngredients()
