@@ -237,9 +237,13 @@ public partial class ItemCreationWindow : Window
             // Add nutrition properties if item is marked as food
             if (IsFoodCheckBox.IsChecked == true)
             {
+                // Get the selected ComboBoxItem and extract its Content
+                var selectedComboBoxItem = FoodCategoryComboBox.SelectedItem as ComboBoxItem;
+                string foodCategory = selectedComboBoxItem?.Content?.ToString() ?? "Vegetable";
+
                 itemData.NutritionProps = new NutritionProps
                 {
-                    FoodCategory = FoodCategoryComboBox.SelectedItem.ToString(),
+                    FoodCategory = foodCategory,
                     Satiety = double.Parse(SatietyTextBox.Text),
                     Health = double.Parse(HealthTextBox.Text),
                     Nutrition = new Nutrition
@@ -299,7 +303,11 @@ public partial class ItemCreationWindow : Window
             string foodInfo = "";
             if (IsFoodCheckBox.IsChecked == true)
             {
-                foodInfo = $"\nFood Category: {FoodCategoryComboBox.SelectedItem}\n" +
+                // Get the selected ComboBoxItem and extract its Content for display
+                var selectedComboBoxItem = FoodCategoryComboBox.SelectedItem as ComboBoxItem;
+                string foodCategoryDisplay = selectedComboBoxItem?.Content?.ToString() ?? "Unknown";
+
+                foodInfo = $"\nFood Category: {foodCategoryDisplay}\n" +
                           $"Satiety: {SatietyTextBox.Text}\n" +
                           $"Health: {HealthTextBox.Text}";
             }
@@ -357,7 +365,17 @@ public partial class ItemCreationWindow : Window
             if (_existingItemData.NutritionProps != null)
             {
                 IsFoodCheckBox.IsChecked = true;
-                FoodCategoryComboBox.SelectedItem = _existingItemData.NutritionProps.FoodCategory;
+
+                // Find and select the correct ComboBoxItem based on the food category
+                foreach (ComboBoxItem item in FoodCategoryComboBox.Items)
+                {
+                    if (item.Content.ToString() == _existingItemData.NutritionProps.FoodCategory)
+                    {
+                        FoodCategoryComboBox.SelectedItem = item;
+                        break;
+                    }
+                }
+
                 SatietyTextBox.Text = _existingItemData.NutritionProps.Satiety.ToString();
                 HealthTextBox.Text = _existingItemData.NutritionProps.Health.ToString();
 

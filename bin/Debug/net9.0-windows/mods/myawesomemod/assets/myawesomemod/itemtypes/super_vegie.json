@@ -12,7 +12,7 @@
     "Base": "item/ingotshiny"
   },
   "NutritionProps": {
-    "FoodCategory": "System.Windows.Controls.ComboBoxItem: Vegetable",
+    "FoodCategory": "Vegetable",
     "Satiety": 20,
     "Health": 8,
     "Nutrition": {
