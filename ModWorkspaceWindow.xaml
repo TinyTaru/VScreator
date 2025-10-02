@@ -133,6 +133,22 @@
 
                         <Button Content="Settings" Style="{StaticResource SidebarButtonStyle}"
                                 Margin="0,30,0,0" Click="SettingsButton_Click"/>
+
+                        <Button Style="{StaticResource SidebarButtonStyle}"
+                                Margin="0,10,0,0" Click="OpenModFolderButton_Click">
+                            <Button.ContentTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <!-- Use the Open Mod Folder icon from Resources -->
+                                        <Image Source="/VScreator;component/Resources/Open Mod Folder.png"
+                                               Width="16"
+                                               Height="16"
+                                               Margin="0,0,8,0"/>
+                                        <TextBlock Text="Open Mod Folder" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </Button.ContentTemplate>
+                        </Button>
                     </StackPanel>
 
                     <!-- Resources Tab Button -->

@@ -120,6 +120,33 @@ public partial class ModWorkspaceWindow : Window
                         "Settings", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
+    private void OpenModFolderButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            string modDirectory = GetModDirectory();
+
+            if (Directory.Exists(modDirectory))
+            {
+                // Open the mod folder in Windows Explorer
+                System.Diagnostics.Process.Start("explorer.exe", modDirectory);
+
+                System.Diagnostics.Debug.WriteLine($"Opened mod folder: {modDirectory}");
+            }
+            else
+            {
+                MessageBox.Show($"Mod folder does not exist yet.\n\nExpected location: {modDirectory}\n\n" +
+                              "Create some content (items, blocks, or recipes) first to generate the mod folder structure.",
+                              "Folder Not Found", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error opening mod folder:\n\n{ex.Message}",
+                          "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
     private void BackToMenuButton_Click(object sender, RoutedEventArgs e)
     {
         // Close the workspace and return to main menu
