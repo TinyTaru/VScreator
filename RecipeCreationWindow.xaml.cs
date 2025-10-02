@@ -184,22 +184,21 @@ public partial class RecipeCreationWindow : Window
                 _currentRecipe.Pattern.Add(new List<string>(new string[_currentGridSize]));
             }
 
-            // Fill the pattern based on ingredientPattern
-            string pattern = _existingRecipeData.recipe.ingredientPattern;
-            for (int i = 0; i < pattern.Length && i < _currentGridSize * _currentGridSize; i++)
+            // Fill the pattern based on ingredientPattern (new comma-separated format)
+            string[] patternRows = _existingRecipeData.recipe.ingredientPattern.Split(',');
+            for (int row = 0; row < _currentGridSize && row < patternRows.Length; row++)
             {
-                int row = i / _currentGridSize;
-                int col = i % _currentGridSize;
-
-                if (pattern[i] == 'X')
+                string patternRow = patternRows[row];
+                for (int col = 0; col < _currentGridSize && col < patternRow.Length; col++)
                 {
-                    // Find the ingredient for this position by checking all ingredients
-                    foreach (var kvp in _existingRecipeData.recipe.ingredients)
+                    char patternChar = patternRow[col];
+                    if (patternChar != '_')
                     {
-                        if (kvp.Value != null)
+                        // Find the ingredient for this letter
+                        string letterStr = patternChar.ToString();
+                        if (_existingRecipeData.recipe.ingredients.TryGetValue(letterStr, out var ingredientData))
                         {
-                            _currentRecipe.Pattern[row][col] = kvp.Value.code;
-                            break; // Found the ingredient for this position
+                            _currentRecipe.Pattern[row][col] = ingredientData.code;
                         }
                     }
                 }
@@ -235,55 +234,59 @@ public partial class RecipeCreationWindow : Window
                     GenerateCraftingGrid();
                 }
 
-                // Populate grid cells with existing ingredients
-                string pattern = _existingRecipeData.recipe.ingredientPattern;
-                for (int i = 0; i < pattern.Length && i < _currentGridSize * _currentGridSize; i++)
+                // Populate grid cells with existing ingredients (new comma-separated format)
+                string[] patternRows = _existingRecipeData.recipe.ingredientPattern.Split(',');
+                for (int row = 0; row < _currentGridSize && row < patternRows.Length; row++)
                 {
-                    int row = i / _currentGridSize;
-                    int col = i % _currentGridSize;
-
-                    if (pattern[i] == 'X' && !string.IsNullOrEmpty(_currentRecipe.Pattern[row][col]))
+                    string patternRow = patternRows[row];
+                    for (int col = 0; col < _currentGridSize && col < patternRow.Length; col++)
                     {
-                        string ingredientCode = _currentRecipe.Pattern[row][col];
-
-                        // Find the ingredient data
-                        var ingredientData = _existingRecipeData.recipe.ingredients.FirstOrDefault(kvp => kvp.Key == ingredientCode);
-                        if (ingredientData.Value != null)
+                        char patternChar = patternRow[col];
+                        if (patternChar != '_')
                         {
-                            var ingredient = new RecipeIngredient
+                            string ingredientCode = _currentRecipe.Pattern[row][col];
+                            if (!string.IsNullOrEmpty(ingredientCode))
                             {
-                                Type = ingredientData.Value.type,
-                                Code = ingredientData.Value.code,
-                                Quantity = ingredientData.Value.quantity,
-                                DisplayName = ingredientData.Value.code.Replace("game:", "").Replace("-", " ").Replace("_", " ")
-                            };
-
-                            // Find the ingredient in available items/blocks for icon
-                            var availableIng = _availableItems.Concat(_availableBlocks)
-                                .FirstOrDefault(item => item.Code == ingredientData.Value.code);
-
-                            if (availableIng != null)
-                            {
-                                ingredient.Icon = availableIng.Icon;
-                                ingredient.IconPath = availableIng.IconPath;
-                            }
-
-                            // Find the grid cell and add the visual
-                            var cell = CraftingGrid.Children
-                                .OfType<Border>()
-                                .FirstOrDefault(c => c.Tag?.ToString() == $"{row},{col}");
-
-                            if (cell != null)
-                            {
-                                var image = new Image
+                                // Find the ingredient data using the letter key
+                                string letterStr = patternChar.ToString();
+                                if (_existingRecipeData.recipe.ingredients.TryGetValue(letterStr, out var ingredientData))
                                 {
-                                    Source = ingredient.Icon,
-                                    Width = 48,
-                                    Height = 48,
-                                    Stretch = Stretch.Uniform,
-                                    Tag = ingredient
-                                };
-                                cell.Child = image;
+                                    var ingredient = new RecipeIngredient
+                                    {
+                                        Type = ingredientData.type,
+                                        Code = ingredientData.code,
+                                        Quantity = ingredientData.quantity,
+                                        DisplayName = ingredientData.code.Replace("game:", "").Replace("-", " ").Replace("_", " ")
+                                    };
+
+                                    // Find the ingredient in available items/blocks for icon
+                                    var availableIng = _availableItems.Concat(_availableBlocks)
+                                        .FirstOrDefault(item => item.Code == ingredientData.code);
+
+                                    if (availableIng != null)
+                                    {
+                                        ingredient.Icon = availableIng.Icon;
+                                        ingredient.IconPath = availableIng.IconPath;
+                                    }
+
+                                    // Find the grid cell and add the visual
+                                    var cell = CraftingGrid.Children
+                                        .OfType<Border>()
+                                        .FirstOrDefault(c => c.Tag?.ToString() == $"{row},{col}");
+
+                                    if (cell != null)
+                                    {
+                                        var image = new Image
+                                        {
+                                            Source = ingredient.Icon,
+                                            Width = 48,
+                                            Height = 48,
+                                            Stretch = Stretch.Uniform,
+                                            Tag = ingredient
+                                        };
+                                        cell.Child = image;
+                                    }
+                                }
                             }
                         }
                     }
@@ -1029,29 +1032,59 @@ public partial class RecipeCreationWindow : Window
 
     private string GenerateRecipeJson()
     {
+        // Create letter mapping for ingredients (X, A, B, C, etc.)
+        var ingredientLetterMap = new Dictionary<string, char>();
+        var ingredientsWithLetters = new Dictionary<string, object>();
+        char currentLetter = 'X';
+
+        foreach (var ingredient in _currentRecipe.Ingredients)
+        {
+            ingredientLetterMap[ingredient.Key] = currentLetter;
+            ingredientsWithLetters[currentLetter.ToString()] = new
+            {
+                type = ingredient.Value.Type,
+                code = ingredient.Value.Code,
+                quantity = ingredient.Value.Quantity
+            };
+            currentLetter++;
+        }
+
+        // Generate ingredientPattern as comma-separated rows
+        var patternRows = new List<string>();
+        for (int row = 0; row < _currentGridSize; row++)
+        {
+            var patternRow = new List<string>();
+            for (int col = 0; col < _currentGridSize; col++)
+            {
+                string cellValue = _currentRecipe.Pattern[row][col];
+                if (string.IsNullOrEmpty(cellValue))
+                {
+                    patternRow.Add("_");
+                }
+                else if (ingredientLetterMap.TryGetValue(cellValue, out char letter))
+                {
+                    patternRow.Add(letter.ToString());
+                }
+                else
+                {
+                    patternRow.Add("_");
+                }
+            }
+            patternRows.Add(string.Join("", patternRow));
+        }
+
         var recipeData = new
         {
             enabled = true,
-            recipe = new
+            ingredientPattern = string.Join(",", patternRows),
+            width = _currentGridSize,
+            height = _currentGridSize,
+            ingredients = ingredientsWithLetters,
+            output = new
             {
-                ingredientPattern = string.Join("", _currentRecipe.Pattern.Select(row =>
-                    string.Join("", row.Select(cell => string.IsNullOrEmpty(cell) ? " " : "X")))),
-                ingredients = _currentRecipe.Ingredients.ToDictionary(
-                    kvp => kvp.Key,
-                    kvp => new
-                    {
-                        type = kvp.Value.Type,
-                        code = kvp.Value.Code,
-                        quantity = kvp.Value.Quantity
-                    }),
-                width = _currentGridSize,
-                height = _currentGridSize,
-                output = new
-                {
-                    type = _currentRecipe.OutputType,
-                    code = _currentRecipe.OutputCode,
-                    quantity = _currentRecipe.OutputQuantity
-                }
+                type = _currentRecipe.OutputType,
+                code = _currentRecipe.OutputCode,
+                quantity = _currentRecipe.OutputQuantity
             }
         };
 
