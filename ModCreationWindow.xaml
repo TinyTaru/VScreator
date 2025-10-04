@@ -100,9 +100,9 @@
         <!-- Buttons -->
         <StackPanel Grid.Row="2" HorizontalAlignment="Center" Orientation="Horizontal">
             <Button Content="Create Mod" Style="{StaticResource CreateButtonStyle}"
-                    Width="150" Click="CreateModButton_Click"/>
+                    Width="150" Height="35" Click="CreateModButton_Click"/>
             <Button Content="Cancel" Style="{StaticResource CreateButtonStyle}"
-                    Width="100" Margin="20,0,0,0" Click="CancelButton_Click"/>
+                    Width="120" Height="35" Margin="20,0,0,0" Click="CancelButton_Click"/>
         </StackPanel>
     </Grid>
 </Window>
