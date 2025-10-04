@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <Resource Include="vscreator.ico" />
+    <Resource Include="Resources\*" />
   </ItemGroup>
 
 </Project>

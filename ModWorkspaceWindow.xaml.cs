@@ -4,6 +4,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Microsoft.Win32;
 using System.IO;
+using System.IO.Compression;
 
 namespace VScreator;
 
@@ -144,6 +145,208 @@ public partial class ModWorkspaceWindow : Window
         {
             MessageBox.Show($"Error opening mod folder:\n\n{ex.Message}",
                           "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void ExportModButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            string modDirectory = GetModDirectory();
+
+            if (!Directory.Exists(modDirectory))
+            {
+                MessageBox.Show($"Mod folder does not exist yet.\n\nExpected location: {modDirectory}\n\n" +
+                              "Create some content (items, blocks, or recipes) first to generate the mod folder structure.",
+                              "Cannot Export", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // Check if mod has any content
+            if (!HasModContent(modDirectory))
+            {
+                MessageBox.Show("No mod content found to export.\n\n" +
+                              "Create some items, blocks, or recipes first before exporting.",
+                              "No Content", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // Create exports folder if it doesn't exist
+            string exeDirectory = AppDomain.CurrentDomain.BaseDirectory;
+            string exportsFolder = Path.Combine(exeDirectory, "mods", "exports");
+            Directory.CreateDirectory(exportsFolder);
+
+            // Create zip file name with version
+            string version = GetModVersion();
+            string zipFileName = $"{_modId}_{version}.zip";
+            string zipFilePath = Path.Combine(exportsFolder, zipFileName);
+
+            // Create the zip file
+            ZipFile.CreateFromDirectory(modDirectory, zipFilePath);
+
+            // Show success popup
+            ShowExportSuccessDialog(zipFilePath, exportsFolder, zipFileName);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error exporting mod:\n\n{ex.Message}",
+                          "Export Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private bool HasModContent(string modDirectory)
+    {
+        try
+        {
+            // Check for assets folder and its subdirectories
+            string assetsPath = Path.Combine(modDirectory, "assets", _modId);
+
+            if (!Directory.Exists(assetsPath))
+                return false;
+
+            // Check for any content in itemtypes, blocktypes, recipes, textures, or shapes
+            string[] contentPaths = {
+                Path.Combine(assetsPath, "itemtypes"),
+                Path.Combine(assetsPath, "blocktypes"),
+                Path.Combine(assetsPath, "recipes"),
+                Path.Combine(assetsPath, "textures"),
+                Path.Combine(assetsPath, "shapes")
+            };
+
+            foreach (string contentPath in contentPaths)
+            {
+                if (Directory.Exists(contentPath) && Directory.GetFiles(contentPath, "*.*", SearchOption.AllDirectories).Length > 0)
+                    return true;
+            }
+
+            return false;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private void ShowExportSuccessDialog(string zipFilePath, string exportsFolder, string zipFileName)
+    {
+        try
+        {
+            // Create a custom dialog window
+            var dialog = new Window
+            {
+                Title = "Export Successful",
+                Width = 400,
+                Height = 200,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Owner = this,
+                Background = new SolidColorBrush(Color.FromRgb(31, 29, 27)),
+                Foreground = new SolidColorBrush(Colors.White),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(135, 142, 76)),
+                BorderThickness = new Thickness(2),
+                ResizeMode = ResizeMode.NoResize
+            };
+
+            // Create main stack panel
+            var mainPanel = new StackPanel { Margin = new Thickness(20) };
+
+            // Success message
+            var messageText = new TextBlock
+            {
+                Text = "Mod exported successfully!",
+                FontSize = 16,
+                FontWeight = FontWeights.Bold,
+                Foreground = new SolidColorBrush(Colors.White),
+                Margin = new Thickness(0, 0, 0, 15),
+                TextWrapping = TextWrapping.Wrap
+            };
+
+            // File info
+            var fileInfoText = new TextBlock
+            {
+                Text = $"Export file: {zipFileName}",
+                FontSize = 12,
+                Foreground = new SolidColorBrush(Color.FromRgb(204, 204, 204)),
+                Margin = new Thickness(0, 0, 0, 15),
+                TextWrapping = TextWrapping.Wrap
+            };
+
+            // Question text
+            var questionText = new TextBlock
+            {
+                Text = "Open exports folder?",
+                FontSize = 14,
+                Foreground = new SolidColorBrush(Colors.White),
+                Margin = new Thickness(0, 0, 0, 20),
+                TextWrapping = TextWrapping.Wrap,
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+
+            // Buttons panel
+            var buttonsPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+
+            // Yes button (Open exports folder)
+            var yesButton = new Button
+            {
+                Content = "Yes",
+                Background = new SolidColorBrush(Color.FromRgb(135, 142, 76)),
+                Foreground = new SolidColorBrush(Colors.White),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(135, 142, 76)),
+                BorderThickness = new Thickness(1),
+                Padding = new Thickness(20, 8, 20, 8),
+                Margin = new Thickness(0, 0, 10, 0),
+                Cursor = System.Windows.Input.Cursors.Hand,
+                FontSize = 14,
+                FontWeight = FontWeights.Bold
+            };
+            yesButton.Click += (s, e) =>
+            {
+                try
+                {
+                    System.Diagnostics.Process.Start("explorer.exe", exportsFolder);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error opening exports folder:\n\n{ex.Message}",
+                                  "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+                dialog.Close();
+            };
+
+            // No button (Just close)
+            var noButton = new Button
+            {
+                Content = "No",
+                Background = new SolidColorBrush(Color.FromRgb(64, 64, 64)),
+                Foreground = new SolidColorBrush(Colors.White),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(64, 64, 64)),
+                BorderThickness = new Thickness(1),
+                Padding = new Thickness(20, 8, 20, 8),
+                Cursor = System.Windows.Input.Cursors.Hand,
+                FontSize = 14,
+                FontWeight = FontWeights.Bold
+            };
+            noButton.Click += (s, e) => dialog.Close();
+
+            // Add elements to panels
+            buttonsPanel.Children.Add(yesButton);
+            buttonsPanel.Children.Add(noButton);
+
+            mainPanel.Children.Add(messageText);
+            mainPanel.Children.Add(fileInfoText);
+            mainPanel.Children.Add(questionText);
+            mainPanel.Children.Add(buttonsPanel);
+
+            dialog.Content = mainPanel;
+            dialog.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error showing export success dialog:\n\n{ex.Message}",
+                          "Dialog Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -469,6 +672,35 @@ public partial class ModWorkspaceWindow : Window
         string exeDirectory = AppDomain.CurrentDomain.BaseDirectory;
         string modsDirectory = Path.Combine(exeDirectory, "mods");
         return Path.Combine(modsDirectory, _modId);
+    }
+
+    private string GetModVersion()
+    {
+        try
+        {
+            string modDirectory = GetModDirectory();
+            string modInfoPath = Path.Combine(modDirectory, "modinfo.json");
+
+            if (File.Exists(modInfoPath))
+            {
+                string jsonContent = File.ReadAllText(modInfoPath);
+                // Simple JSON parsing to extract version
+                string versionPattern = "\"version\"\\s*:\\s*\"([^\"]+)\"";
+                var match = System.Text.RegularExpressions.Regex.Match(jsonContent, versionPattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+                if (match.Success)
+                {
+                    return match.Groups[1].Value;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error reading mod version: {ex.Message}");
+        }
+
+        // Fallback to default version if not found
+        return "1.0.0";
     }
 
     private void LoadTextures()

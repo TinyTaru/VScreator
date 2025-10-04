@@ -103,9 +103,81 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Title -->
-        <TextBlock Grid.Row="0" Text="VScreator" FontSize="24" FontWeight="Bold"
-                   HorizontalAlignment="Center" Margin="20" Foreground="#ffffff"/>
+        <!-- Title and Action Buttons -->
+        <Grid Grid.Row="0">
+            <TextBlock Text="VScreator" FontSize="24" FontWeight="Bold"
+                       HorizontalAlignment="Center" Margin="20" Foreground="#ffffff"/>
+
+            <!-- Action Buttons Container -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,20,0">
+                <!-- Export Button -->
+                <Button x:Name="ExportModButton"
+                        Click="ExportModButton_Click"
+                        Width="40"
+                        Height="40"
+                        Background="#404040"
+                        BorderBrush="#606060"
+                        BorderThickness="1"
+                        ToolTip="Export Mod"
+                        Margin="0,0,10,0"
+                        Panel.ZIndex="10">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="3">
+                                <Image x:Name="ExportImage" Source="Resources/Export.png"
+                                       Width="24"
+                                       Height="24"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#505050"/>
+                                    <Setter Property="BorderBrush" Value="#707070"/>
+                                    <Setter TargetName="ExportImage" Property="Source" Value="Resources/Export - Hover.png"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+
+                <!-- Open Mod Folder Button -->
+                <Button x:Name="OpenModFolderButton"
+                        Click="OpenModFolderButton_Click"
+                        Width="40"
+                        Height="40"
+                        Background="#404040"
+                        BorderBrush="#606060"
+                        BorderThickness="1"
+                        ToolTip="Open Mod Folder"
+                        Panel.ZIndex="10">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="3">
+                                <Image x:Name="FolderImage" Source="Resources/Open Mod Folder.png"
+                                       Width="48"
+                                       Height="48"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#505050"/>
+                                    <Setter Property="BorderBrush" Value="#707070"/>
+                                    <Setter TargetName="FolderImage" Property="Source" Value="Resources/Open Mod Folder - Hover.png"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </StackPanel>
+        </Grid>
 
         <!-- Main Content Grid -->
         <Grid Grid.Row="1">
@@ -134,21 +206,6 @@
                         <Button Content="Settings" Style="{StaticResource SidebarButtonStyle}"
                                 Margin="0,30,0,0" Click="SettingsButton_Click"/>
 
-                        <Button Style="{StaticResource SidebarButtonStyle}"
-                                Margin="0,10,0,0" Click="OpenModFolderButton_Click">
-                            <Button.ContentTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal">
-                                        <!-- Use the Open Mod Folder icon from Resources -->
-                                        <Image Source="/VScreator;component/Resources/Open Mod Folder.png"
-                                               Width="16"
-                                               Height="16"
-                                               Margin="0,0,8,0"/>
-                                        <TextBlock Text="Open Mod Folder" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </Button.ContentTemplate>
-                        </Button>
                     </StackPanel>
 
                     <!-- Resources Tab Button -->
