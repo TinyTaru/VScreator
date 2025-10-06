@@ -7,12 +7,18 @@
   },
   "DrawType": "Cube",
   "Texture": {
-    "Base": "block/Gem Engraver Front"
+    "Base": "block/Creative Tab"
   },
   "BlockMaterial": "Stone",
-  "Resistance": 5.4,
+  "Resistance": 3.5,
   "Sounds": {
     "Place": "game:block/dirt",
     "Walk": "game:walk/stone"
-  }
+  },
+  "Drops": [
+    {
+      "Type": "item",
+      "Code": "game:agedfirewood"
+    }
+  ]
 }

@@ -174,6 +174,28 @@
                 <TextBlock Text="Resistance:" Style="{StaticResource BlockLabelStyle}"/>
                 <TextBox x:Name="ResistanceTextBox" Style="{StaticResource BlockInputTextBoxStyle}"
                          Text="3.5"/>
+
+                <!-- Custom Drops Section -->
+                <CheckBox x:Name="EnableCustomDropsCheckBox" Content="Enable Custom Drops"
+                          Foreground="#ffffff" FontSize="14" FontWeight="SemiBold"
+                          Margin="0,20,0,10"
+                          Checked="EnableCustomDropsCheckBox_Checked"
+                          Unchecked="EnableCustomDropsCheckBox_Unchecked"/>
+
+                <StackPanel x:Name="CustomDropsPanel" Visibility="Collapsed" Margin="0,10,0,0">
+                    <TextBlock Text="Custom Drops:" Style="{StaticResource BlockLabelStyle}"/>
+                    <TextBlock Text="Click on each field to select an item or block:" FontSize="12" Foreground="#cccccc" Margin="0,0,0,10"/>
+
+                    <TextBox x:Name="Drop1TextBox" Style="{StaticResource BlockInputTextBoxStyle}"
+                             Text="Click to select item/block..." IsReadOnly="True" Cursor="Hand"
+                             PreviewMouseDown="DropTextBox_PreviewMouseDown" Tag="Drop1"/>
+                    <TextBox x:Name="Drop2TextBox" Style="{StaticResource BlockInputTextBoxStyle}"
+                             Text="Click to select item/block..." IsReadOnly="True" Cursor="Hand"
+                             PreviewMouseDown="DropTextBox_PreviewMouseDown" Tag="Drop2"/>
+                    <TextBox x:Name="Drop3TextBox" Style="{StaticResource BlockInputTextBoxStyle}"
+                             Text="Click to select item/block..." IsReadOnly="True" Cursor="Hand"
+                             PreviewMouseDown="DropTextBox_PreviewMouseDown" Tag="Drop3"/>
+                </StackPanel>
             </StackPanel>
         </ScrollViewer>
 

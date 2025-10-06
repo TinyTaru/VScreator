@@ -2,6 +2,7 @@ using System.IO;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace VScreator;
 
@@ -118,6 +119,67 @@ public partial class BlockCreationWindow : Window
         // This method is required for the XAML but we don't need to do anything special here
     }
 
+    private void EnableCustomDropsCheckBox_Checked(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (CustomDropsPanel != null)
+            {
+                CustomDropsPanel.Visibility = Visibility.Visible;
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error in EnableCustomDropsCheckBox_Checked: {ex.Message}");
+        }
+    }
+
+    private void EnableCustomDropsCheckBox_Unchecked(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (CustomDropsPanel != null)
+            {
+                CustomDropsPanel.Visibility = Visibility.Collapsed;
+
+                // Clear the drop text boxes
+                if (Drop1TextBox != null) Drop1TextBox.Text = "Click to select item/block...";
+                if (Drop2TextBox != null) Drop2TextBox.Text = "Click to select item/block...";
+                if (Drop3TextBox != null) Drop3TextBox.Text = "Click to select item/block...";
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error in EnableCustomDropsCheckBox_Unchecked: {ex.Message}");
+        }
+    }
+
+    private void DropTextBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        try
+        {
+            if (sender is TextBox textBox)
+            {
+                // Open the item/block selector window
+                var selectorWindow = new ItemBlockSelectorWindow();
+                selectorWindow.ShowDialog();
+    
+                // Check if an item was selected (DialogResult is not used)
+                if (selectorWindow.SelectedItem != null)
+                {
+                    var selectedItem = selectorWindow.SelectedItem;
+                    textBox.Text = selectedItem.DisplayName;
+                    textBox.Tag = selectedItem; // Store the full item data in the Tag property
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error in DropTextBox_PreviewMouseDown: {ex.Message}");
+            MessageBox.Show($"Error opening item selector: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
     private void CreateBlockButton_Click(object sender, RoutedEventArgs e)
     {
         // Validate inputs
@@ -170,6 +232,31 @@ public partial class BlockCreationWindow : Window
                 }
             };
 
+            // Add custom drops if enabled and UI elements exist
+            if (EnableCustomDropsCheckBox?.IsChecked == true)
+            {
+                var drops = new List<BlockDrop>();
+
+                // Check each drop textbox for selected items
+                if (Drop1TextBox?.Tag is SelectableItem drop1 && !string.IsNullOrWhiteSpace(drop1.Code))
+                {
+                    drops.Add(new BlockDrop { Type = drop1.Type, Code = drop1.Code });
+                }
+                if (Drop2TextBox?.Tag is SelectableItem drop2 && !string.IsNullOrWhiteSpace(drop2.Code))
+                {
+                    drops.Add(new BlockDrop { Type = drop2.Type, Code = drop2.Code });
+                }
+                if (Drop3TextBox?.Tag is SelectableItem drop3 && !string.IsNullOrWhiteSpace(drop3.Code))
+                {
+                    drops.Add(new BlockDrop { Type = drop3.Type, Code = drop3.Code });
+                }
+
+                if (drops.Count > 0)
+                {
+                    blockData.Drops = drops;
+                }
+            }
+
             string jsonContent = JsonSerializer.Serialize(blockData, new JsonSerializerOptions
             {
                 WriteIndented = true
@@ -180,7 +267,7 @@ public partial class BlockCreationWindow : Window
             // Check if we're editing an existing block
             bool isEditing = _existingBlockData != null;
 
-            if (isEditing)
+            if (isEditing && _existingBlockData != null)
             {
                 // For editing, we need to check if the block ID changed
                 string oldBlockCode = _existingBlockData.Code;
@@ -406,6 +493,7 @@ public class BlockData
     public string BlockMaterial { get; set; } = "";
     public double Resistance { get; set; }
     public BlockSounds Sounds { get; set; } = new();
+    public List<BlockDrop> Drops { get; set; } = new();
 }
 
 public class BlockTexture
@@ -417,4 +505,10 @@ public class BlockSounds
 {
     public string Place { get; set; } = "";
     public string Walk { get; set; } = "";
+}
+
+public class BlockDrop
+{
+    public string Type { get; set; } = "";
+    public string Code { get; set; } = "";
 }
