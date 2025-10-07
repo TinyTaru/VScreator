@@ -59,6 +59,13 @@ public partial class ModWorkspaceWindow : Window
         recipeCreationWindow.ShowDialog();
     }
 
+    private void AddWorldgenButton_Click(object sender, RoutedEventArgs e)
+    {
+        // Open the world gen creation window with refresh callback
+        var worldgenCreationWindow = new WorldGenCreationWindow(_modId, _modName, RefreshWorldgenList);
+        worldgenCreationWindow.ShowDialog();
+    }
+
     private void EditRecipeButton_Click(object sender, RoutedEventArgs e)
     {
         try
@@ -381,10 +388,11 @@ public partial class ModWorkspaceWindow : Window
             ResourcesTabContent.Visibility = Visibility.Collapsed;
             DeleteTextureButton.Visibility = Visibility.Collapsed;
 
-            // Load items, blocks, and recipes when switching to Content tab
+            // Load items, blocks, recipes, and world gen when switching to Content tab
             LoadItems();
             LoadBlocks();
             LoadRecipes();
+            LoadWorldgen();
         }
         else if (tabName == "Resources")
         {
@@ -1196,6 +1204,65 @@ public partial class ModWorkspaceWindow : Window
         }
     }
 
+    private void LoadWorldgen()
+    {
+        try
+        {
+            // Clear existing world gen
+            WorldgenListView.Items.Clear();
+
+            string modDirectory = GetModDirectory();
+            string worldgenPath = Path.Combine(modDirectory, "assets", _modId, "worldgen");
+
+            if (!Directory.Exists(worldgenPath))
+            {
+                // No world gen found yet
+                WorldgenHeader.Text = "World Gen: (No world gen created yet)";
+                return;
+            }
+
+            string[] worldgenFiles = Directory.GetFiles(worldgenPath, "*.json");
+
+            foreach (string worldgenFile in worldgenFiles)
+            {
+                try
+                {
+                    string worldgenName = Path.GetFileNameWithoutExtension(worldgenFile);
+                    string jsonContent = File.ReadAllText(worldgenFile);
+
+                    // Parse the world gen data
+                    var worldgenData = System.Text.Json.JsonSerializer.Deserialize<WorldGenData>(jsonContent);
+                    if (worldgenData != null)
+                    {
+                        var worldgenViewModel = new WorldgenViewModel
+                        {
+                            Name = worldgenName,
+                            Comment = worldgenData.Comment,
+                            BlockCodes = string.Join(", ", worldgenData.BlockCodes),
+                            Placement = worldgenData.Placement,
+                            Chance = worldgenData.Chance,
+                            QuantityAvg = worldgenData.Quantity.Avg,
+                            QuantityVar = worldgenData.Quantity.Var
+                        };
+
+                        WorldgenListView.Items.Add(worldgenViewModel);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error loading world gen {worldgenFile}: {ex.Message}");
+                }
+            }
+
+            // Update header based on world gen count
+            WorldgenHeader.Text = $"World Gen: ({WorldgenListView.Items.Count})";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading world gen: {ex.Message}", "Load Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
     private string GetItemNameFromEnJson(string itemCode)
     {
         try
@@ -1355,6 +1422,12 @@ public partial class ModWorkspaceWindow : Window
         LoadBlocks();
     }
 
+    private void RefreshWorldgenList()
+    {
+        // Refresh the world gen list by reloading from disk
+        LoadWorldgen();
+    }
+
     private void EditItem(string itemCode)
     {
         try
@@ -1387,6 +1460,56 @@ public partial class ModWorkspaceWindow : Window
             MessageBox.Show($"Error loading item for editing: {ex.Message}", "Edit Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
+
+    private void EditWorldgenButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var button = sender as Button;
+            if (button != null)
+            {
+                string worldgenName = button.Tag as string;
+                if (!string.IsNullOrEmpty(worldgenName))
+                {
+                    EditWorldgen(worldgenName);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error editing world gen: {ex.Message}", "Edit Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void EditWorldgen(string worldgenName)
+    {
+        try
+        {
+            string modDirectory = GetModDirectory();
+            string worldgenPath = Path.Combine(modDirectory, "assets", _modId, "worldgen");
+            string worldgenFilePath = Path.Combine(worldgenPath, $"{worldgenName}.json");
+
+            if (!File.Exists(worldgenFilePath))
+            {
+                MessageBox.Show($"World gen file not found: {worldgenFilePath}", "File Not Found", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            string jsonContent = File.ReadAllText(worldgenFilePath);
+            var worldgenData = System.Text.Json.JsonSerializer.Deserialize<WorldGenData>(jsonContent);
+
+            if (worldgenData != null)
+            {
+                // Open WorldGenCreationWindow with pre-filled data and refresh callback
+                var worldgenCreationWindow = new WorldGenCreationWindow(_modId, _modName, worldgenData, worldgenName, RefreshWorldgenList);
+                worldgenCreationWindow.ShowDialog();
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading world gen for editing: {ex.Message}", "Edit Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
 }
 
 // View model for items list
@@ -1415,6 +1538,18 @@ public class RecipeViewModel
     public int OutputQuantity { get; set; }
     public int IngredientCount { get; set; }
     public string GridSize { get; set; } = "";
+}
+
+// View model for world gen list
+public class WorldgenViewModel
+{
+    public string Name { get; set; } = "";
+    public string Comment { get; set; } = "";
+    public string BlockCodes { get; set; } = "";
+    public string Placement { get; set; } = "";
+    public int Chance { get; set; }
+    public double QuantityAvg { get; set; }
+    public double QuantityVar { get; set; }
 }
 
 // Data model for grid-based recipes (for JSON deserialization)

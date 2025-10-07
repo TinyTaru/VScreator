@@ -1,8 +1,3 @@
-c:\git\Mods\VScreator\VScreator\bin\Debug\net9.0-windows\VScreator.exe
-c:\git\Mods\VScreator\VScreator\bin\Debug\net9.0-windows\VScreator.deps.json
-c:\git\Mods\VScreator\VScreator\bin\Debug\net9.0-windows\VScreator.runtimeconfig.json
-c:\git\Mods\VScreator\VScreator\bin\Debug\net9.0-windows\VScreator.dll
-c:\git\Mods\VScreator\VScreator\bin\Debug\net9.0-windows\VScreator.pdb
 c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\BlockCreationWindow.g.cs
 c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\ItemBlockSelectorWindow.g.cs
 c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\ItemCreationWindow.g.cs
@@ -11,9 +6,15 @@ c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\ModCreationWindow.g.cs
 c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\ModWorkspaceWindow.g.cs
 c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\RecipeCreationWindow.g.cs
 c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\TextureTypeSelectionWindow.g.cs
+c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\WorldGenCreationWindow.g.cs
 c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\App.g.cs
 c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\VScreator_MarkupCompile.cache
 c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\VScreator_MarkupCompile.lref
+c:\git\Mods\VScreator\VScreator\bin\Debug\net9.0-windows\VScreator.exe
+c:\git\Mods\VScreator\VScreator\bin\Debug\net9.0-windows\VScreator.deps.json
+c:\git\Mods\VScreator\VScreator\bin\Debug\net9.0-windows\VScreator.runtimeconfig.json
+c:\git\Mods\VScreator\VScreator\bin\Debug\net9.0-windows\VScreator.dll
+c:\git\Mods\VScreator\VScreator\bin\Debug\net9.0-windows\VScreator.pdb
 c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\BlockCreationWindow.baml
 c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\ItemBlockSelectorWindow.baml
 c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\ItemCreationWindow.baml
@@ -22,6 +23,7 @@ c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\ModCreationWindow.baml
 c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\ModWorkspaceWindow.baml
 c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\RecipeCreationWindow.baml
 c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\TextureTypeSelectionWindow.baml
+c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\WorldGenCreationWindow.baml
 c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\VScreator.g.resources
 c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\VScreator.GeneratedMSBuildEditorConfig.editorconfig
 c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\VScreator.AssemblyInfoInputs.cache
