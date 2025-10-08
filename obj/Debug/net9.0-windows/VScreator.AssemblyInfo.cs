@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("VScreator")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f4d8f231f4e35da42f82b4aaefb87f3a1b60e094")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ad6f37430fab0a7b62b5f48f8fe0e90a459d3c92")]
 [assembly: System.Reflection.AssemblyProductAttribute("VScreator")]
 [assembly: System.Reflection.AssemblyTitleAttribute("VScreator")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

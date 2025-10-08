@@ -1,4 +1,7 @@
+using System;
+using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
@@ -15,12 +18,15 @@ public partial class WorldGenCreationWindow : Window
     private WorldGenData? _existingWorldGenData = null;
     private string _existingWorldGenName = "";
     private Action? _refreshCallback = null;
+    private readonly ObservableCollection<BlockEntry> _selectedBlocks = new();
 
     public WorldGenCreationWindow(string modId, string modName)
     {
         InitializeComponent();
         _modId = modId;
         _modName = modName;
+
+        InitializeBlocksList();
 
         // Set default selection for placement dropdown
         PlacementComboBox.SelectedIndex = 4; // Underground (matches the example)
@@ -34,6 +40,8 @@ public partial class WorldGenCreationWindow : Window
         _modName = modName;
         _refreshCallback = refreshCallback;
 
+        InitializeBlocksList();
+
         // Set default selection for placement dropdown
         PlacementComboBox.SelectedIndex = 4; // Underground (matches the example)
     }
@@ -46,6 +54,8 @@ public partial class WorldGenCreationWindow : Window
         _modName = modName;
         _existingWorldGenData = existingWorldGenData;
         _existingWorldGenName = existingWorldGenName;
+
+        InitializeBlocksList();
 
         // Pre-fill the form with existing world gen data
         PreFillFormWithExistingData();
@@ -61,8 +71,15 @@ public partial class WorldGenCreationWindow : Window
         _existingWorldGenName = existingWorldGenName;
         _refreshCallback = refreshCallback;
 
+        InitializeBlocksList();
+
         // Pre-fill the form with existing world gen data
         PreFillFormWithExistingData();
+    }
+
+    private void InitializeBlocksList()
+    {
+        BlocksItemsControl.ItemsSource = _selectedBlocks;
     }
 
     private string GetModDirectory()
@@ -75,13 +92,13 @@ public partial class WorldGenCreationWindow : Window
     private void CreateWorldgenButton_Click(object sender, RoutedEventArgs e)
     {
         // Validate inputs
-        if (string.IsNullOrWhiteSpace(BlockCodesTextBox.Text) ||
+        if (_selectedBlocks.Count == 0 ||
             string.IsNullOrWhiteSpace(ChanceTextBox.Text) ||
             PlacementComboBox.SelectedItem == null ||
             string.IsNullOrWhiteSpace(QuantityAvgTextBox.Text) ||
             string.IsNullOrWhiteSpace(QuantityVarTextBox.Text))
         {
-            MessageBox.Show("Please fill in all fields (Block Codes, Placement, Rarity, and Quantity values).",
+            MessageBox.Show("Please fill in all fields (Blocks, Placement, Rarity, and Quantity values).",
                             "Missing Information", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
@@ -118,19 +135,10 @@ public partial class WorldGenCreationWindow : Window
             // Create worldgen directory if it doesn't exist
             Directory.CreateDirectory(worldGenPath);
 
-            // Parse block codes from comma-separated string
-            string[] blockCodeArray = BlockCodesTextBox.Text
-                .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(code => code.Trim())
-                .Where(code => !string.IsNullOrEmpty(code))
+            string[] blockCodeArray = _selectedBlocks
+                .Select(entry => entry.Code)
+                .Where(code => !string.IsNullOrWhiteSpace(code))
                 .ToArray();
-
-            if (blockCodeArray.Length == 0)
-            {
-                MessageBox.Show("Please enter at least one valid block code.",
-                                "Invalid Block Codes", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
 
             // Create world gen JSON
             var worldGenData = new WorldGenData
@@ -147,7 +155,7 @@ public partial class WorldGenCreationWindow : Window
             };
 
             // Generate filename based on first block code or use a default name
-            string fileName = !string.IsNullOrWhiteSpace(BlockCodesTextBox.Text)
+            string fileName = blockCodeArray.Length > 0
                 ? blockCodeArray[0].Replace(":", "_").Replace("-", "_") + "_worldgen"
                 : "custom_worldgen";
 
@@ -202,39 +210,120 @@ public partial class WorldGenCreationWindow : Window
 
     private void CancelButton_Click(object sender, RoutedEventArgs e)
     {
-        this.Close();
+        Close();
     }
 
     private void PreFillFormWithExistingData()
     {
-        if (_existingWorldGenData != null)
+        if (_existingWorldGenData == null)
         {
-            // Pre-fill the form fields with existing data
-            CommentTextBox.Text = _existingWorldGenData.Comment;
-            BlockCodesTextBox.Text = string.Join(", ", _existingWorldGenData.BlockCodes);
-            ChanceTextBox.Text = _existingWorldGenData.Chance.ToString();
-            QuantityAvgTextBox.Text = _existingWorldGenData.Quantity.Avg.ToString();
-            QuantityVarTextBox.Text = _existingWorldGenData.Quantity.Var.ToString();
+            return;
+        }
 
-            // Set the placement selection
-            string placementValue = _existingWorldGenData.Placement;
-            foreach (ComboBoxItem item in PlacementComboBox.Items)
+        CommentTextBox.Text = _existingWorldGenData.Comment;
+        ChanceTextBox.Text = _existingWorldGenData.Chance.ToString();
+        QuantityAvgTextBox.Text = _existingWorldGenData.Quantity.Avg.ToString();
+        QuantityVarTextBox.Text = _existingWorldGenData.Quantity.Var.ToString();
+
+        string placementValue = _existingWorldGenData.Placement;
+        foreach (ComboBoxItem item in PlacementComboBox.Items)
+        {
+            if (string.Equals(item.Tag?.ToString(), placementValue, StringComparison.OrdinalIgnoreCase))
             {
-                if (item.Tag.ToString() == placementValue)
-                {
-                    PlacementComboBox.SelectedItem = item;
-                    break;
-                }
+                PlacementComboBox.SelectedItem = item;
+                break;
             }
+        }
 
-            // Update the window title to indicate editing mode
-            this.Title = $"Edit World Gen - {_modName}";
+        PopulateBlocksFromExistingData();
 
-            // Update the button text to indicate editing mode
-            // TODO: Fix UI element reference after XAML compilation
-            // CreateWorldgenButton.Content = "Update World Gen";
+        Title = $"Edit World Gen - {_modName}";
+        // TODO: Fix UI element reference after XAML compilation
+        // CreateWorldgenButton.Content = "Update World Gen";
+    }
+
+    private void PopulateBlocksFromExistingData()
+    {
+        _selectedBlocks.Clear();
+
+        if (_existingWorldGenData?.BlockCodes == null)
+        {
+            return;
+        }
+
+        foreach (var code in _existingWorldGenData.BlockCodes)
+        {
+            if (!string.IsNullOrWhiteSpace(code) &&
+                !_selectedBlocks.Any(entry => string.Equals(entry.Code, code, StringComparison.OrdinalIgnoreCase)))
+            {
+                _selectedBlocks.Add(new BlockEntry(code));
+            }
         }
     }
+
+    private void AddBlockButton_Click(object sender, RoutedEventArgs e)
+    {
+        var selectorWindow = new ItemBlockSelectorWindow();
+        selectorWindow.ShowDialog();
+
+        var selectedItem = selectorWindow.SelectedItem;
+        if (selectedItem == null)
+        {
+            return;
+        }
+
+        if (!string.Equals(selectedItem.Type, "block", StringComparison.OrdinalIgnoreCase))
+        {
+            MessageBox.Show("Please select a block.", "Selection Required", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        if (_selectedBlocks.Any(entry => string.Equals(entry.Code, selectedItem.Code, StringComparison.OrdinalIgnoreCase)))
+        {
+            MessageBox.Show("This block is already in the list.", "Duplicate Block", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        _selectedBlocks.Add(new BlockEntry(selectedItem.Code));
+    }
+
+    private void RemoveBlockButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: string code })
+        {
+            var entry = _selectedBlocks.FirstOrDefault(item => string.Equals(item.Code, code, StringComparison.OrdinalIgnoreCase));
+            if (entry != null)
+            {
+                _selectedBlocks.Remove(entry);
+            }
+        }
+    }
+}
+
+public class BlockEntry
+{
+    public BlockEntry(string code)
+    {
+        Code = code;
+    }
+
+    public string Code { get; }
+
+    public string Display
+    {
+        get
+        {
+            var colonIndex = Code.IndexOf(':');
+            if (colonIndex >= 0 && colonIndex < Code.Length - 1)
+            {
+                return Code[(colonIndex + 1)..];
+            }
+
+            return Code;
+        }
+    }
+
+    public override string ToString() => Display;
 }
 
 // Data models for world generation JSON structure

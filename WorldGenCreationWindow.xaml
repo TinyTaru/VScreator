@@ -145,9 +145,6 @@
         <Style x:Key="BlockListBoxStyle" TargetType="ListBox">
             <Setter Property="Background" Value="#2f2d2b"/>
             <Setter Property="Foreground" Value="#ffffff"/>
-            <Setter Property="BorderBrush" Value="#404040"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Margin" Value="0,5"/>
         </Style>
     </Window.Resources>
 
@@ -159,59 +156,96 @@
         </Grid.RowDefinitions>
 
         <!-- Title -->
-        <TextBlock Grid.Row="0" Text="World Gen Creator"
-                   FontSize="18" FontWeight="Bold"
+        <TextBlock Grid.Row="0" Text="New World Gen"
+                   FontSize="24" FontWeight="Bold"
                    HorizontalAlignment="Center" Margin="0,0,0,25"
                    Foreground="#ffffff"/>
 
         <!-- Input Fields -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-            <StackPanel>
-                <TextBlock Text="Comment (Optional):" Style="{StaticResource WorldGenLabelStyle}"/>
-                <TextBox x:Name="CommentTextBox" Style="{StaticResource WorldGenInputTextBoxStyle}"
-                         Text="Lots of bones and carcasses underground"/>
+            <Grid Margin="0,0,0,20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.1*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
 
-                <TextBlock Text="Block Codes:" Style="{StaticResource WorldGenLabelStyle}"/>
-                <TextBlock Text="Enter block codes separated by commas:" FontSize="12" Foreground="#cccccc" Margin="0,0,0,5"/>
-                <TextBox x:Name="BlockCodesTextBox" Style="{StaticResource WorldGenInputTextBoxStyle}"
-                         Text="game:bonyremains-cowskull-up, game:bonyremains-ribcage, game:drycarcass-humanoid1"/>
+                <!-- Left Column -->
+                <StackPanel Grid.Column="0" Margin="0,0,20,0">
+                    <TextBlock Text="Placement:" Style="{StaticResource WorldGenLabelStyle}"/>
+                    <ComboBox x:Name="PlacementComboBox" Style="{StaticResource WorldGenComboBoxStyle}">
+                        <ComboBoxItem Content="ReplaceSurface" Tag="ReplaceSurface"/>
+                        <ComboBoxItem Content="OnSurface" Tag="OnSurface"/>
+                        <ComboBoxItem Content="NearWater" Tag="NearWater"/>
+                        <ComboBoxItem Content="Anywhere" Tag="Anywhere"/>
+                        <ComboBoxItem Content="Underground" Tag="Underground"/>
+                        <ComboBoxItem Content="UnderWater" Tag="UnderWater"/>
+                        <ComboBoxItem Content="NearSeaWater" Tag="NearSeaWater"/>
+                        <ComboBoxItem Content="UnderSeaWater" Tag="UnderSeaWater"/>
+                        <ComboBoxItem Content="UnderTrees" Tag="UnderTrees"/>
+                        <ComboBoxItem Content="OnTrees" Tag="OnTrees"/>
+                        <ComboBoxItem Content="OnSurfacePlusUnderTrees" Tag="OnSurfacePlusUnderTrees"/>
+                    </ComboBox>
 
-                <TextBlock Text="Placement:" Style="{StaticResource WorldGenLabelStyle}"/>
-                <ComboBox x:Name="PlacementComboBox" Style="{StaticResource WorldGenComboBoxStyle}">
-                    <ComboBoxItem Content="ReplaceSurface" Tag="ReplaceSurface"/>
-                    <ComboBoxItem Content="OnSurface" Tag="OnSurface"/>
-                    <ComboBoxItem Content="NearWater" Tag="NearWater"/>
-                    <ComboBoxItem Content="Anywhere" Tag="Anywhere"/>
-                    <ComboBoxItem Content="Underground" Tag="Underground"/>
-                    <ComboBoxItem Content="UnderWater" Tag="UnderWater"/>
-                    <ComboBoxItem Content="NearSeaWater" Tag="NearSeaWater"/>
-                    <ComboBoxItem Content="UnderSeaWater" Tag="UnderSeaWater"/>
-                    <ComboBoxItem Content="UnderTrees" Tag="UnderTrees"/>
-                    <ComboBoxItem Content="OnTrees" Tag="OnTrees"/>
-                    <ComboBoxItem Content="OnSurfacePlusUnderTrees" Tag="OnSurfacePlusUnderTrees"/>
-                </ComboBox>
+                    <TextBlock Text="Rarity (Chance):" Style="{StaticResource WorldGenLabelStyle}"/>
+                    <TextBlock Text="Higher values = more rare (lower chance of spawning):" FontSize="12" Foreground="#cccccc" Margin="0,0,0,5"/>
+                    <TextBox x:Name="ChanceTextBox" Style="{StaticResource WorldGenInputTextBoxStyle}" Text="120"/>
 
-                <TextBlock Text="Rarity (Chance):" Style="{StaticResource WorldGenLabelStyle}"/>
-                <TextBlock Text="Higher values = more rare (lower chance of spawning):" FontSize="12" Foreground="#cccccc" Margin="0,0,0,5"/>
-                <TextBox x:Name="ChanceTextBox" Style="{StaticResource WorldGenInputTextBoxStyle}"
-                         Text="120"/>
+                    <TextBlock Text="Quantity:" Style="{StaticResource WorldGenLabelStyle}"/>
+                    <StackPanel Margin="10,0,0,0">
+                        <TextBlock Text="Average:" Style="{StaticResource WorldGenLabelStyle}" Margin="0,10,0,5"/>
+                        <TextBox x:Name="QuantityAvgTextBox" Style="{StaticResource WorldGenInputTextBoxStyle}" Text="1" Margin="0,0,10,0"/>
 
-                <TextBlock Text="Quantity:" Style="{StaticResource WorldGenLabelStyle}"/>
+                        <TextBlock Text="Variation:" Style="{StaticResource WorldGenLabelStyle}" Margin="0,15,0,5"/>
+                        <TextBox x:Name="QuantityVarTextBox" Style="{StaticResource WorldGenInputTextBoxStyle}" Text="0" Margin="0,0,10,0"/>
+                    </StackPanel>
 
-                <TextBlock Text="Average:" Style="{StaticResource WorldGenLabelStyle}" Margin="20,10,0,5"/>
-                <TextBox x:Name="QuantityAvgTextBox" Style="{StaticResource WorldGenInputTextBoxStyle}"
-                         Text="1" Margin="20,0,20,0"/>
+                    <TextBlock Text="Comment (Optional):" Style="{StaticResource WorldGenLabelStyle}"/>
+                    <TextBox x:Name="CommentTextBox" Style="{StaticResource WorldGenInputTextBoxStyle}"
+                             AcceptsReturn="True" TextWrapping="Wrap"
+                             MinHeight="120" Text="Lots of bones and carcasses underground"/>
+                </StackPanel>
 
-                <TextBlock Text="Variation:" Style="{StaticResource WorldGenLabelStyle}" Margin="20,15,0,5"/>
-                <TextBox x:Name="QuantityVarTextBox" Style="{StaticResource WorldGenInputTextBoxStyle}"
-                         Text="0" Margin="20,0,20,0"/>
-            </StackPanel>
+                <!-- Right Column -->
+                <StackPanel Grid.Column="1">
+                    <DockPanel LastChildFill="False">
+                        <TextBlock Text="Blocks:" Style="{StaticResource WorldGenLabelStyle}" Margin="0,0,10,0"/>
+                        <Button x:Name="AddBlockButton" Width="32" Height="32"
+                                Background="#878e4c" Foreground="#1f1d1b" FontWeight="Bold"
+                                Click="AddBlockButton_Click">
+                            <TextBlock Text="+" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Button>
+                    </DockPanel>
+
+                    <Border Background="#2f2d2b" BorderBrush="#404040" BorderThickness="1" CornerRadius="4" Padding="6">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Height="260">
+                            <ItemsControl x:Name="BlocksItemsControl">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="#3a3836" BorderBrush="#505050" BorderThickness="1" CornerRadius="3" Margin="0,0,0,6">
+                                            <Grid Margin="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="{Binding Display}" Foreground="#ffffff" VerticalAlignment="Center" FontSize="14"/>
+                                                <Button Grid.Column="1" Content="X" Width="28" Height="28" Margin="10,0,0,0"
+                                                        Background="#8f2e2e" Foreground="#ffffff" FontWeight="Bold"
+                                                        Click="RemoveBlockButton_Click" Tag="{Binding Code}"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Border>
+                </StackPanel>
+            </Grid>
         </ScrollViewer>
 
         <!-- Buttons -->
         <StackPanel Grid.Row="2" Orientation="Horizontal"
-                     HorizontalAlignment="Right" Margin="0,25,0,0">
-            <Button x:Name="CreateWorldGenButton" Content="Create World Gen" Style="{StaticResource WorldGenCreateButtonStyle}"
+                     HorizontalAlignment="Center" Margin="0,10,0,0">
+            <Button x:Name="CreateWorldGenButton" Content="Create" Style="{StaticResource WorldGenCreateButtonStyle}"
                     Click="CreateWorldgenButton_Click"/>
             <Button Content="Cancel" Style="{StaticResource WorldGenCreateButtonStyle}"
                     Click="CancelButton_Click"/>
