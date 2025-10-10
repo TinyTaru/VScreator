@@ -77,9 +77,8 @@
                 <TextBox x:Name="ModNameTextBox" Style="{StaticResource InputTextBoxStyle}"
                          Text="My Awesome Mod"/>
 
-                <TextBlock Text="Mod ID:" Style="{StaticResource LabelStyle}"/>
-                <TextBox x:Name="ModIdTextBox" Style="{StaticResource InputTextBoxStyle}"
-                         Text="myawesomemod"/>
+                <TextBlock Text="Mod ID: (Optional)" Style="{StaticResource LabelStyle}"/>
+                <TextBox x:Name="ModIdTextBox" Style="{StaticResource InputTextBoxStyle}"/>
 
                 <TextBlock Text="Author:" Style="{StaticResource LabelStyle}"/>
                 <TextBox x:Name="AuthorTextBox" Style="{StaticResource InputTextBoxStyle}"

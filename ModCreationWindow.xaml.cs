@@ -18,12 +18,17 @@ public partial class ModCreationWindow : Window
     {
         // Validate inputs
         if (string.IsNullOrWhiteSpace(ModNameTextBox.Text) ||
-            string.IsNullOrWhiteSpace(ModIdTextBox.Text) ||
             string.IsNullOrWhiteSpace(AuthorTextBox.Text))
         {
-            MessageBox.Show("Please fill in all required fields (Name, ID, and Author).",
+            MessageBox.Show("Please fill in all required fields (Name and Author).",
                           "Missing Information", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
+        }
+
+        // Auto-fill Mod ID if empty
+        if (string.IsNullOrWhiteSpace(ModIdTextBox.Text))
+        {
+            ModIdTextBox.Text = ModNameTextBox.Text.ToLower().Replace(" ", "");
         }
 
         try

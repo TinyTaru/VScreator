@@ -1,3 +1,8 @@
+c:\git\Mods\VScreator\VScreator\bin\Debug\net9.0-windows\VScreator.exe
+c:\git\Mods\VScreator\VScreator\bin\Debug\net9.0-windows\VScreator.deps.json
+c:\git\Mods\VScreator\VScreator\bin\Debug\net9.0-windows\VScreator.runtimeconfig.json
+c:\git\Mods\VScreator\VScreator\bin\Debug\net9.0-windows\VScreator.dll
+c:\git\Mods\VScreator\VScreator\bin\Debug\net9.0-windows\VScreator.pdb
 c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\BlockCreationWindow.g.cs
 c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\ItemBlockSelectorWindow.g.cs
 c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\ItemCreationWindow.g.cs
@@ -10,11 +15,6 @@ c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\WorldGenCreationWindow.
 c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\App.g.cs
 c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\VScreator_MarkupCompile.cache
 c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\VScreator_MarkupCompile.lref
-c:\git\Mods\VScreator\VScreator\bin\Debug\net9.0-windows\VScreator.exe
-c:\git\Mods\VScreator\VScreator\bin\Debug\net9.0-windows\VScreator.deps.json
-c:\git\Mods\VScreator\VScreator\bin\Debug\net9.0-windows\VScreator.runtimeconfig.json
-c:\git\Mods\VScreator\VScreator\bin\Debug\net9.0-windows\VScreator.dll
-c:\git\Mods\VScreator\VScreator\bin\Debug\net9.0-windows\VScreator.pdb
 c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\BlockCreationWindow.baml
 c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\ItemBlockSelectorWindow.baml
 c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\ItemCreationWindow.baml
