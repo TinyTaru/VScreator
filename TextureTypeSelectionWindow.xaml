@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:VScreator"
         mc:Ignorable="d"
-        Title="Select Texture Type" Height="220" Width="400"
+        Title="Select Texture Type" Height="300" Width="450"
         WindowStartupLocation="CenterScreen"
         Background="#1f1d1b"
         ResizeMode="NoResize"
@@ -19,14 +19,85 @@
             <Setter Property="Margin" Value="0,0,0,10"/>
         </Style>
 
-        <Style x:Key="DialogComboBoxStyle" TargetType="ComboBox">
-            <Setter Property="Background" Value="#2F2D2B"/>
+        <Style x:Key="DialogComboBoxStyle" TargetType="{x:Type ComboBox}">
+            <Setter Property="SnapsToDevicePixels" Value="true"/>
+            <Setter Property="OverridesDefaultStyle" Value="true"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="ScrollViewer.CanContentScroll" Value="true"/>
             <Setter Property="Foreground" Value="#ffffff"/>
-            <Setter Property="BorderBrush" Value="#404040"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="10"/>
-            <Setter Property="Margin" Value="0,0,0,20"/>
             <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Margin" Value="0,0,0,20"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ComboBox}">
+                        <Grid>
+                            <ToggleButton
+                                Name="ToggleButton"
+                                Grid.Column="2"
+                                Focusable="false"
+                                IsChecked="{Binding Path=IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                ClickMode="Press">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="{x:Type ToggleButton}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition />
+                                                <ColumnDefinition Width="20" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border
+                                                x:Name="Border"
+                                                Grid.ColumnSpan="2"
+                                                CornerRadius="3"
+                                                Background="#404040"
+                                                BorderBrush="#404040"
+                                                BorderThickness="1" />
+                                            <Path
+                                                x:Name="Arrow"
+                                                Grid.Column="1"
+                                                Fill="#ffffff"
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                Data="M 0 0 L 4 4 L 8 0 Z"/>
+                                        </Grid>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <ContentPresenter
+                                Name="ContentSite"
+                                IsHitTestVisible="False"
+                                Content="{TemplateBinding SelectionBoxItem}"
+                                ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                Margin="10,0,0,0"
+                                VerticalAlignment="Center"
+                                HorizontalAlignment="Left" />
+                            <Popup
+                                Name="Popup"
+                                Placement="Bottom"
+                                IsOpen="{TemplateBinding IsDropDownOpen}"
+                                AllowsTransparency="True"
+                                Focusable="False"
+                                PopupAnimation="Slide">
+                                <Grid
+                                    Name="DropDown"
+                                    SnapsToDevicePixels="True"
+                                    MinWidth="{TemplateBinding ActualWidth}"
+                                    MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                    <Border
+                                        x:Name="DropDownBorder"
+                                        Background="#2f2d2b"
+                                        BorderThickness="1"
+                                        BorderBrush="#404040"/>
+                                    <ScrollViewer Margin="4,6,4,6" SnapsToDevicePixels="True">
+                                        <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained" />
+                                    </ScrollViewer>
+                                </Grid>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style x:Key="TextureTypeButtonStyle" TargetType="Button">
@@ -93,7 +164,7 @@
         </Style>
     </Window.Resources>
 
-    <Grid Margin="30">
+    <Grid Margin="30,20,30,20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -106,21 +177,23 @@
                    HorizontalAlignment="Center" Margin="0,0,0,30"
                    Foreground="#ffffff"/>
 
-        <!-- Texture Type Buttons -->
-        <StackPanel Grid.Row="1" Margin="0,0,0,40">
-            <Button Content="Block" Style="{StaticResource TextureTypeButtonStyle}"
-                    Click="BlockButton_Click" Margin="0,0,0,15"/>
-            <Button Content="Item" Style="{StaticResource TextureTypeButtonStyle}"
-                    Click="ItemButton_Click"/>
+        <!-- Texture Type Selection -->
+        <StackPanel Grid.Row="1" Margin="0,0,0,30">
+            <TextBlock Text="Texture Type:" Style="{StaticResource DialogLabelStyle}"/>
+            <ComboBox x:Name="TextureTypeComboBox" Style="{StaticResource DialogComboBoxStyle}" Margin="0,0,0,10">
+                <ComboBoxItem Content="item" IsSelected="True"/>
+                <ComboBoxItem Content="block"/>
+                <ComboBoxItem Content="crop"/>
+            </ComboBox>
         </StackPanel>
 
         <!-- OK/Cancel Buttons -->
         <StackPanel Grid.Row="2" Orientation="Horizontal"
-                    HorizontalAlignment="Right">
+                     HorizontalAlignment="Right" Margin="0,20,0,10" VerticalAlignment="Bottom">
             <Button Content="OK" Style="{StaticResource DialogButtonStyle}"
-                    Click="OkButton_Click"/>
+                    Click="OkButton_Click" Margin="0,0,10,0" MinHeight="30"/>
             <Button Content="Cancel" Style="{StaticResource DialogButtonStyle}"
-                    Click="CancelButton_Click"/>
+                    Click="CancelButton_Click" MinHeight="30"/>
         </StackPanel>
     </Grid>
 </Window>

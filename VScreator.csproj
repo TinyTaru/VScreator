@@ -6,11 +6,11 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <ApplicationIcon>vscreator.ico</ApplicationIcon>
+    <ApplicationIcon>iconV2.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
-    <Resource Include="vscreator.ico" />
+    <Resource Include="iconV2.ico" />
     <Resource Include="Resources\*" />
   </ItemGroup>
 

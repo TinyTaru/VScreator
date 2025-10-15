@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls;
 
 namespace VScreator;
 
@@ -14,23 +15,14 @@ public partial class TextureTypeSelectionWindow : Window
         InitializeComponent();
     }
 
-    private void BlockButton_Click(object sender, RoutedEventArgs e)
-    {
-        SelectedTextureType = "block";
-        this.DialogResult = true;
-        this.Close();
-    }
-
-    private void ItemButton_Click(object sender, RoutedEventArgs e)
-    {
-        SelectedTextureType = "item";
-        this.DialogResult = true;
-        this.Close();
-    }
-
     private void OkButton_Click(object sender, RoutedEventArgs e)
     {
-        // This is now handled by the individual Block/Item buttons
+        // Set the selected texture type from the ComboBox
+        if (TextureTypeComboBox.SelectedItem is ComboBoxItem selectedItem)
+        {
+            SelectedTextureType = selectedItem.Content.ToString();
+        }
+
         this.DialogResult = true;
         this.Close();
     }

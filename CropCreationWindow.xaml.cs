@@ -1,0 +1,707 @@
+using System.IO;
+using System.Text.Json;
+using System.Windows;
+using System.Windows.Controls;
+
+namespace VScreator;
+
+/// <summary>
+/// Interaction logic for CropCreationWindow.xaml
+/// </summary>
+public partial class CropCreationWindow : Window
+{
+    private readonly string _modId;
+    private readonly string _modName;
+    private CropData? _existingCropData = null;
+    private string _existingCropName = "";
+    private Action? _refreshCallback = null;
+
+    public CropCreationWindow(string modId, string modName)
+    {
+        InitializeComponent();
+        _modId = modId;
+        _modName = modName;
+
+        // Load available crop textures
+        LoadCropTextures();
+    }
+
+    // Constructor for creating new crops with refresh callback
+    public CropCreationWindow(string modId, string modName, Action refreshCallback)
+    {
+        InitializeComponent();
+        _modId = modId;
+        _modName = modName;
+        _refreshCallback = refreshCallback;
+    }
+
+    // Constructor for editing existing crops
+    public CropCreationWindow(string modId, string modName, CropData existingCropData, string existingCropName)
+    {
+        InitializeComponent();
+        _modId = modId;
+        _modName = modName;
+        _existingCropData = existingCropData;
+        _existingCropName = existingCropName;
+
+        // Pre-fill the form with existing crop data
+        PreFillFormWithExistingData();
+    }
+
+    // Constructor for editing existing crops with refresh callback
+    public CropCreationWindow(string modId, string modName, CropData existingCropData, string existingCropName, Action refreshCallback)
+    {
+        InitializeComponent();
+        _modId = modId;
+        _modName = modName;
+        _existingCropData = existingCropData;
+        _existingCropName = existingCropName;
+        _refreshCallback = refreshCallback;
+
+        // Pre-fill the form with existing crop data
+        PreFillFormWithExistingData();
+    }
+
+    private string GetModDirectory()
+    {
+        string exeDirectory = AppDomain.CurrentDomain.BaseDirectory;
+        string modsDirectory = Path.Combine(exeDirectory, "mods");
+        return Path.Combine(modsDirectory, _modId);
+    }
+
+    private void CreateCropButton_Click(object sender, RoutedEventArgs e)
+    {
+        // Validate inputs
+        if (string.IsNullOrWhiteSpace(CropNameTextBox.Text) ||
+            string.IsNullOrWhiteSpace(CropIdTextBox.Text) ||
+            string.IsNullOrWhiteSpace(StatesTextBox.Text))
+        {
+            MessageBox.Show("Please fill in all required fields (Name, ID, and States).",
+                           "Missing Information", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        // Validate states format
+        string[] states = StatesTextBox.Text.Split(',');
+        for (int i = 0; i < states.Length; i++)
+        {
+            states[i] = states[i].Trim();
+            if (string.IsNullOrEmpty(states[i]))
+            {
+                MessageBox.Show("States field cannot contain empty values.",
+                               "Invalid Input", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+        }
+
+        // Validate numeric fields
+        if (!int.TryParse(NutrientConsumptionTextBox.Text, out int nutrientConsumption))
+        {
+            MessageBox.Show("Please enter a valid number for nutrient consumption.",
+                           "Invalid Input", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        if (!double.TryParse(GrowthMonthsTextBox.Text, out double growthMonths))
+        {
+            MessageBox.Show("Please enter a valid number for growth months.",
+                           "Invalid Input", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        if (!int.TryParse(ColdDamageTextBox.Text, out int coldDamage))
+        {
+            MessageBox.Show("Please enter a valid number for cold damage temperature.",
+                           "Invalid Input", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        if (!int.TryParse(HeatDamageTextBox.Text, out int heatDamage))
+        {
+            MessageBox.Show("Please enter a valid number for heat damage temperature.",
+                           "Invalid Input", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        try
+        {
+            string modDirectory = GetModDirectory();
+            string assetsPath = Path.Combine(modDirectory, "assets", _modId);
+            string blockTypesPath = Path.Combine(assetsPath, "blocktypes", "plant", "crop");
+
+            // Create directory structure if it doesn't exist
+            Directory.CreateDirectory(blockTypesPath);
+
+            // Generate states array for variantgroups
+            var variantGroups = new[]
+            {
+                new VariantGroup
+                {
+                    code = "stage",
+                    states = states
+                }
+            };
+
+            // Generate shapeByType entries
+            var shapeByType = new Dictionary<string, ShapeData>();
+            for (int i = 0; i < states.Length; i++)
+            {
+                string stateKey = $"*-{states[i]}";
+                string shapeKey = $"Shape{(i + 1)}TextBox";
+                TextBox? shapeTextBox = FindName(shapeKey) as TextBox;
+                string shapePath = shapeTextBox?.Text ?? $"block/plant/crop/{CropIdTextBox.Text}/stage-{states[i]}";
+
+                shapeByType[stateKey] = new ShapeData
+                {
+                    @base = shapePath
+                };
+            }
+
+            // Generate texturesByType entries
+            var texturesByType = new Dictionary<string, Dictionary<string, TextureData>>();
+            for (int i = 0; i < states.Length; i++)
+            {
+                string stateKey = $"*-{states[i]}";
+                string textureKey = $"Texture{(i + 1)}ComboBox";
+                ComboBox? textureComboBox = FindName(textureKey) as ComboBox;
+                ComboBoxItem? selectedTextureItem = textureComboBox?.SelectedItem as ComboBoxItem;
+                string texturePath = selectedTextureItem?.Content?.ToString() ?? $"block/crop/{CropIdTextBox.Text}/stage-{states[i]}";
+
+                texturesByType[stateKey] = new Dictionary<string, TextureData>
+                {
+                    ["plant"] = new TextureData
+                    {
+                        @base = texturePath
+                    }
+                };
+            }
+
+            // Generate dropsByType
+            var dropsByType = new Dictionary<string, List<CropDrop>>();
+
+            // Ripe stage drops (last state)
+            string ripeState = $"*-{states[states.Length - 1]}";
+            var ripeDrops = new List<CropDrop>();
+
+            if (!string.IsNullOrWhiteSpace(SeedsTextBox.Text))
+            {
+                ripeDrops.Add(new CropDrop
+                {
+                    type = "item",
+                    code = SeedsTextBox.Text,
+                    quantity = new QuantityData { avg = 1.2 }
+                });
+            }
+
+            if (!string.IsNullOrWhiteSpace(ProduceTextBox.Text))
+            {
+                ripeDrops.Add(new CropDrop
+                {
+                    type = "item",
+                    code = ProduceTextBox.Text,
+                    quantity = new QuantityData { avg = 6, var = 2 }
+                });
+            }
+
+            if (ripeDrops.Count > 0)
+            {
+                dropsByType[ripeState] = ripeDrops;
+            }
+
+            // Default drops for other stages
+            var defaultDrops = new List<CropDrop>();
+            if (!string.IsNullOrWhiteSpace(SeedsTextBox.Text))
+            {
+                defaultDrops.Add(new CropDrop
+                {
+                    type = "item",
+                    code = SeedsTextBox.Text,
+                    quantity = new QuantityData { avg = 0.7 }
+                });
+            }
+
+            if (defaultDrops.Count > 0)
+            {
+                dropsByType["*"] = defaultDrops;
+            }
+
+            // Generate crop properties
+            var cropProps = new CropProps
+            {
+                requiredNutrient = RequiredNutrientComboBox.Text,
+                nutrientConsumption = nutrientConsumption,
+                growthStages = states.Length,
+                totalGrowthMonths = growthMonths,
+                coldDamageBelow = coldDamage,
+                damageGrowthStuntMul = 0.75,
+                coldDamageRipeMul = 0.5,
+                heatDamageAbove = heatDamage,
+                multipleHarvests = MultipleHarvestsCheckBox.IsChecked ?? false
+            };
+
+            // Create the crop data
+            var cropData = new CropData
+            {
+                code = $"crop-{CropIdTextBox.Text}",
+                variantgroups = variantGroups,
+                shapeByType = shapeByType,
+                texturesByType = texturesByType,
+                dropsByType = dropsByType,
+                cropProps = cropProps
+            };
+
+            string jsonContent = JsonSerializer.Serialize(cropData, new JsonSerializerOptions
+            {
+                WriteIndented = true
+            });
+
+            string cropFilePath = Path.Combine(blockTypesPath, $"{CropIdTextBox.Text}.json");
+
+            // Check if we're editing an existing crop
+            bool isEditing = _existingCropData != null;
+
+            if (isEditing && _existingCropData != null)
+            {
+                // For editing, we need to check if the crop ID changed
+                string oldCropCode = _existingCropData.code.Replace("crop-", "");
+                string newCropCode = CropIdTextBox.Text;
+
+                if (oldCropCode != newCropCode)
+                {
+                    // Crop ID changed, remove old file
+                    string oldCropFilePath = Path.Combine(blockTypesPath, $"{oldCropCode}.json");
+                    if (File.Exists(oldCropFilePath))
+                    {
+                        File.Delete(oldCropFilePath);
+                    }
+
+                    // Update en.json to remove old entry and add new one
+                    UpdateEnJsonFileForEdit(oldCropCode, newCropCode, CropNameTextBox.Text);
+                }
+                else
+                {
+                    // Crop ID unchanged, just update en.json
+                    UpdateEnJsonFile(newCropCode, CropNameTextBox.Text);
+                }
+            }
+            else
+            {
+                // Creating new crop
+                UpdateEnJsonFile(CropIdTextBox.Text, CropNameTextBox.Text);
+            }
+
+            File.WriteAllText(cropFilePath, jsonContent);
+
+            string action = isEditing ? "updated" : "created";
+            MessageBox.Show($"Crop '{CropNameTextBox.Text}' has been {action} successfully!\n\n" +
+                           $"ID: {CropIdTextBox.Text}\n" +
+                           $"States: {string.Join(", ", states)}\n" +
+                           $"Location: {cropFilePath}",
+                           $"Crop {action}", MessageBoxButton.OK, MessageBoxImage.Information);
+
+            // Call the refresh callback to update the crops list in the parent window
+            _refreshCallback?.Invoke();
+
+            this.Close();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"An error occurred while creating the crop:\n\n{ex.Message}",
+                           "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void CancelButton_Click(object sender, RoutedEventArgs e)
+    {
+        this.Close();
+    }
+
+    private void LoadCropTextures()
+    {
+        try
+        {
+            string modDirectory = GetModDirectory();
+            string cropTexturesPath = Path.Combine(modDirectory, "assets", _modId, "textures", "block", "plant", "crop");
+
+            // Force immediate console output
+            Console.WriteLine("=== CROP TEXTURE LOADING DEBUG ===");
+            Console.Out.Flush();
+            Console.WriteLine($"Mod directory: {modDirectory}");
+            Console.Out.Flush();
+            Console.WriteLine($"Mod ID: {_modId}");
+            Console.Out.Flush();
+            Console.WriteLine($"Looking for crop textures in: {cropTexturesPath}");
+            Console.Out.Flush();
+            Console.WriteLine($"Directory exists: {Directory.Exists(cropTexturesPath)}");
+            Console.Out.Flush();
+
+            // Add default empty option first
+            var emptyOption = new ComboBoxItem { Content = "(Auto-generated)", Tag = "" };
+            Texture1ComboBox.Items.Add(emptyOption);
+            Texture2ComboBox.Items.Add(emptyOption);
+            Texture3ComboBox.Items.Add(emptyOption);
+            Texture4ComboBox.Items.Add(emptyOption);
+            Texture5ComboBox.Items.Add(emptyOption);
+
+            if (Directory.Exists(cropTexturesPath))
+            {
+                string[] textureFiles = Directory.GetFiles(cropTexturesPath, "*.png");
+                Console.WriteLine($"Found {textureFiles.Length} texture files in directory");
+
+                if (textureFiles.Length == 0)
+                {
+                    // Check if there are any files at all
+                    string[] allFiles = Directory.GetFiles(cropTexturesPath, "*.*");
+                    Console.WriteLine($"Total files in directory: {allFiles.Length}");
+                    foreach (string file in allFiles)
+                    {
+                        Console.WriteLine($"File: {Path.GetFileName(file)}");
+                    }
+                }
+
+                foreach (string textureFile in textureFiles)
+                {
+                    string fileName = Path.GetFileNameWithoutExtension(textureFile);
+                    string texturePath = $"block/crop/{fileName}";
+
+                    Console.WriteLine($"Adding texture: {texturePath} from file: {textureFile}");
+
+                    var item = new ComboBoxItem
+                    {
+                        Content = texturePath,
+                        Tag = texturePath
+                    };
+
+                    Texture1ComboBox.Items.Add(item);
+                    Texture2ComboBox.Items.Add(item);
+                    Texture3ComboBox.Items.Add(item);
+                    Texture4ComboBox.Items.Add(item);
+                    Texture5ComboBox.Items.Add(item);
+                }
+            }
+            else
+            {
+                Console.WriteLine($"Crop textures directory does not exist: {cropTexturesPath}");
+
+                // Try to create the directory structure for debugging
+                try
+                {
+                    Directory.CreateDirectory(cropTexturesPath);
+                    Console.WriteLine($"Created directory: {cropTexturesPath}");
+                }
+                catch (Exception dirEx)
+                {
+                    Console.WriteLine($"Failed to create directory: {dirEx.Message}");
+                }
+            }
+
+            // Set default selections and log results
+            Console.WriteLine($"=== COMBOBOX POPULATION RESULTS ===");
+            Console.WriteLine($"Texture1ComboBox has {Texture1ComboBox.Items.Count} items");
+            Console.WriteLine($"Texture2ComboBox has {Texture2ComboBox.Items.Count} items");
+            Console.WriteLine($"Texture3ComboBox has {Texture3ComboBox.Items.Count} items");
+            Console.WriteLine($"Texture4ComboBox has {Texture4ComboBox.Items.Count} items");
+            Console.WriteLine($"Texture5ComboBox has {Texture5ComboBox.Items.Count} items");
+
+            if (Texture1ComboBox.Items.Count > 0) Texture1ComboBox.SelectedIndex = 0;
+            if (Texture2ComboBox.Items.Count > 0) Texture2ComboBox.SelectedIndex = 0;
+            if (Texture3ComboBox.Items.Count > 0) Texture3ComboBox.SelectedIndex = 0;
+            if (Texture4ComboBox.Items.Count > 0) Texture4ComboBox.SelectedIndex = 0;
+            if (Texture5ComboBox.Items.Count > 0) Texture5ComboBox.SelectedIndex = 0;
+
+            // Show debug info to user if no textures found
+            if (Texture1ComboBox.Items.Count <= 1)
+            {
+                MessageBox.Show(
+                    $"No crop textures found in:\n{cropTexturesPath}\n\n" +
+                    "Make sure you have:\n" +
+                    "1. Created a mod first\n" +
+                    "2. Imported textures using 'crop' type in Resources tab\n" +
+                    "3. Textures are in the correct directory structure",
+                    "No Crop Textures Found",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading crop textures: {ex.Message}");
+            Console.Out.Flush();
+            MessageBox.Show($"Error loading crop textures: {ex.Message}", "Load Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void TextureComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        // This method is required for the XAML but we don't need to do anything special here
+    }
+
+    private void PreFillFormWithExistingData()
+    {
+        if (_existingCropData != null)
+        {
+            // Pre-fill the form fields with existing data
+            CropIdTextBox.Text = _existingCropData.code.Replace("crop-", "");
+            CropNameTextBox.Text = _existingCropName;
+
+            // Fill states
+            if (_existingCropData.variantgroups.Length > 0)
+            {
+                StatesTextBox.Text = string.Join(", ", _existingCropData.variantgroups[0].states);
+            }
+
+            // Fill shapes
+            for (int i = 0; i < _existingCropData.variantgroups[0].states.Length; i++)
+            {
+                string state = _existingCropData.variantgroups[0].states[i];
+                string stateKey = $"*-{state}";
+                string shapeKey = $"Shape{(i + 1)}TextBox";
+
+                if (_existingCropData.shapeByType.TryGetValue(stateKey, out ShapeData? shapeData))
+                {
+                    TextBox? shapeTextBox = FindName(shapeKey) as TextBox;
+                    shapeTextBox!.Text = shapeData.@base;
+                }
+            }
+
+            // Fill textures
+            for (int i = 0; i < _existingCropData.variantgroups[0].states.Length; i++)
+            {
+                string state = _existingCropData.variantgroups[0].states[i];
+                string stateKey = $"*-{state}";
+                string textureKey = $"Texture{(i + 1)}ComboBox";
+
+                if (_existingCropData.texturesByType.TryGetValue(stateKey, out Dictionary<string, TextureData>? textureData) &&
+                    textureData.TryGetValue("plant", out TextureData? plantTexture))
+                {
+                    TextBox? textureTextBox = FindName(textureKey) as TextBox;
+                    textureTextBox!.Text = plantTexture.@base;
+                }
+            }
+
+            // Fill drops
+            if (_existingCropData.dropsByType.TryGetValue("*", out List<CropDrop>? defaultDrops) && defaultDrops.Count > 0)
+            {
+                SeedsTextBox.Text = defaultDrops[0].code;
+            }
+
+            string ripeState = $"*-{_existingCropData.variantgroups[0].states.Last()}";
+            if (_existingCropData.dropsByType.TryGetValue(ripeState, out List<CropDrop>? ripeDrops) && ripeDrops.Count > 0)
+            {
+                // Find produce drop (not seeds)
+                foreach (var drop in ripeDrops)
+                {
+                    if (drop.code != SeedsTextBox.Text)
+                    {
+                        ProduceTextBox.Text = drop.code;
+                        break;
+                    }
+                }
+            }
+
+            // Fill crop properties
+            if (_existingCropData.cropProps != null)
+            {
+                RequiredNutrientComboBox.Text = _existingCropData.cropProps.requiredNutrient;
+                NutrientConsumptionTextBox.Text = _existingCropData.cropProps.nutrientConsumption.ToString();
+                GrowthMonthsTextBox.Text = _existingCropData.cropProps.totalGrowthMonths.ToString();
+                ColdDamageTextBox.Text = _existingCropData.cropProps.coldDamageBelow.ToString();
+                HeatDamageTextBox.Text = _existingCropData.cropProps.heatDamageAbove.ToString();
+                MultipleHarvestsCheckBox.IsChecked = _existingCropData.cropProps.multipleHarvests;
+            }
+
+            // Update the window title to indicate editing mode
+            this.Title = $"Edit Crop - {_modName}";
+
+            // Update the button text to indicate editing mode
+            CreateCropButton.Content = "Update Crop";
+        }
+    }
+
+    private void UpdateEnJsonFile(string cropCode, string cropName)
+    {
+        try
+        {
+            string modDirectory = GetModDirectory();
+            string langDirectory = Path.Combine(modDirectory, "assets", _modId, "lang");
+
+            // Create lang directory if it doesn't exist
+            Directory.CreateDirectory(langDirectory);
+
+            string enJsonPath = Path.Combine(langDirectory, "en.json");
+
+            // Read existing en.json or create new dictionary
+            Dictionary<string, string> langEntries = new Dictionary<string, string>();
+
+            if (File.Exists(enJsonPath))
+            {
+                try
+                {
+                    string existingContent = File.ReadAllText(enJsonPath);
+                    if (!string.IsNullOrWhiteSpace(existingContent))
+                    {
+                        // Parse existing JSON
+                        try
+                        {
+                            langEntries = JsonSerializer.Deserialize<Dictionary<string, string>>(existingContent)
+                                        ?? new Dictionary<string, string>();
+                        }
+                        catch
+                        {
+                            // If parsing fails, start with empty dictionary
+                            langEntries = new Dictionary<string, string>();
+                        }
+                    }
+                }
+                catch
+                {
+                    // If reading fails, start with empty dictionary
+                    langEntries = new Dictionary<string, string>();
+                }
+            }
+
+            // Add or update the crop entry
+            string cropKey = $"block-crop-{cropCode}";
+            langEntries[cropKey] = cropName;
+
+            // Write back to en.json with proper formatting
+            var options = new JsonSerializerOptions
+            {
+                WriteIndented = true
+            };
+
+            string updatedContent = JsonSerializer.Serialize(langEntries, options);
+            File.WriteAllText(enJsonPath, updatedContent);
+
+            Console.WriteLine($"Updated en.json at {enJsonPath} with entry: {cropKey}: {cropName}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating en.json: {ex.Message}");
+            // Don't show error to user as the crop was created successfully
+            // The language file update is a secondary feature
+        }
+    }
+
+    private void UpdateEnJsonFileForEdit(string oldCropCode, string newCropCode, string newCropName)
+    {
+        try
+        {
+            string modDirectory = GetModDirectory();
+            string langDirectory = Path.Combine(modDirectory, "assets", _modId, "lang");
+
+            // Create lang directory if it doesn't exist
+            Directory.CreateDirectory(langDirectory);
+
+            string enJsonPath = Path.Combine(langDirectory, "en.json");
+
+            // Read existing en.json or create new dictionary
+            Dictionary<string, string> langEntries = new Dictionary<string, string>();
+
+            if (File.Exists(enJsonPath))
+            {
+                try
+                {
+                    string existingContent = File.ReadAllText(enJsonPath);
+                    if (!string.IsNullOrWhiteSpace(existingContent))
+                    {
+                        // Parse existing JSON
+                        try
+                        {
+                            langEntries = JsonSerializer.Deserialize<Dictionary<string, string>>(existingContent)
+                                        ?? new Dictionary<string, string>();
+                        }
+                        catch
+                        {
+                            // If parsing fails, start with empty dictionary
+                            langEntries = new Dictionary<string, string>();
+                        }
+                    }
+                }
+                catch
+                {
+                    // If reading fails, start with empty dictionary
+                    langEntries = new Dictionary<string, string>();
+                }
+            }
+
+            // Remove old entry
+            string oldCropKey = $"block-crop-{oldCropCode}";
+            langEntries.Remove(oldCropKey);
+
+            // Add new entry
+            string newCropKey = $"block-crop-{newCropCode}";
+            langEntries[newCropKey] = newCropName;
+
+            // Write back to en.json with proper formatting
+            var options = new JsonSerializerOptions
+            {
+                WriteIndented = true
+            };
+
+            string updatedContent = JsonSerializer.Serialize(langEntries, options);
+            File.WriteAllText(enJsonPath, updatedContent);
+
+            Console.WriteLine($"Updated en.json at {enJsonPath} - removed: {oldCropKey}, added: {newCropKey}: {newCropName}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating en.json for edit: {ex.Message}");
+            // Don't show error to user as the crop was updated successfully
+            // The language file update is a secondary feature
+        }
+    }
+}
+
+// Data classes for JSON serialization
+public class CropData
+{
+    public string code { get; set; } = "";
+    public VariantGroup[] variantgroups { get; set; } = Array.Empty<VariantGroup>();
+    public Dictionary<string, ShapeData> shapeByType { get; set; } = new();
+    public Dictionary<string, Dictionary<string, TextureData>> texturesByType { get; set; } = new();
+    public Dictionary<string, List<CropDrop>> dropsByType { get; set; } = new();
+    public CropProps? cropProps { get; set; }
+}
+
+public class VariantGroup
+{
+    public string code { get; set; } = "";
+    public string[] states { get; set; } = Array.Empty<string>();
+}
+
+public class ShapeData
+{
+    public string @base { get; set; } = "";
+}
+
+public class TextureData
+{
+    public string @base { get; set; } = "";
+}
+
+public class CropDrop
+{
+    public string type { get; set; } = "";
+    public string code { get; set; } = "";
+    public QuantityData? quantity { get; set; }
+}
+
+public class QuantityData
+{
+    public double avg { get; set; }
+    public double var { get; set; }
+}
+
+public class CropProps
+{
+    public string requiredNutrient { get; set; } = "";
+    public int nutrientConsumption { get; set; }
+    public int growthStages { get; set; }
+    public double totalGrowthMonths { get; set; }
+    public int coldDamageBelow { get; set; }
+    public double damageGrowthStuntMul { get; set; }
+    public double coldDamageRipeMul { get; set; }
+    public int heatDamageAbove { get; set; }
+    public bool multipleHarvests { get; set; }
+}

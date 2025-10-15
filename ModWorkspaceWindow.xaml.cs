@@ -66,6 +66,13 @@ public partial class ModWorkspaceWindow : Window
         worldgenCreationWindow.ShowDialog();
     }
 
+    private void AddCropButton_Click(object sender, RoutedEventArgs e)
+    {
+        // Open the crop creation window with refresh callback
+        var cropCreationWindow = new CropCreationWindow(_modId, _modName, RefreshCropsList);
+        cropCreationWindow.ShowDialog();
+    }
+
     private void EditRecipeButton_Click(object sender, RoutedEventArgs e)
     {
         try
@@ -388,11 +395,12 @@ public partial class ModWorkspaceWindow : Window
             ResourcesTabContent.Visibility = Visibility.Collapsed;
             DeleteTextureButton.Visibility = Visibility.Collapsed;
 
-            // Load items, blocks, recipes, and world gen when switching to Content tab
+            // Load items, blocks, recipes, world gen, and crops when switching to Content tab
             LoadItems();
             LoadBlocks();
             LoadRecipes();
             LoadWorldgen();
+            LoadCrops();
         }
         else if (tabName == "Resources")
         {
@@ -443,7 +451,7 @@ public partial class ModWorkspaceWindow : Window
                 selectedPath = _selectedModelPath;
                 selectedType = _selectedModelType;
                 itemType = "shape";
-                itemTypeName = selectedType == "item" ? "Item" : "Block";
+                itemTypeName = selectedType == "item" ? "Item" : (selectedType == "crop" ? "Crop" : "Block");
             }
 
             // Get item information
@@ -559,12 +567,22 @@ public partial class ModWorkspaceWindow : Window
                     return; // User cancelled
                 }
 
-                bool isBlockTexture = (textureTypeDialog.SelectedTextureType == "block");
+                string selectedTextureType = textureTypeDialog.SelectedTextureType;
 
                 // Create folder structure
                 string modDirectory = GetModDirectory();
-                string textureType = isBlockTexture ? "block" : "item";
-                string texturePath = Path.Combine(modDirectory, "assets", _modId, "textures", textureType);
+                string texturePath;
+
+                if (selectedTextureType == "crop")
+                {
+                    // For crop textures, use the special subdirectory
+                    texturePath = Path.Combine(modDirectory, "assets", _modId, "textures", "block", "plant", "crop");
+                }
+                else
+                {
+                    // For regular block or item textures
+                    texturePath = Path.Combine(modDirectory, "assets", _modId, "textures", selectedTextureType);
+                }
 
                 // Create directories if they don't exist
                 Directory.CreateDirectory(texturePath);
@@ -576,7 +594,7 @@ public partial class ModWorkspaceWindow : Window
                 File.Copy(selectedFilePath, destinationPath, true);
 
                 // Show success message
-                string textureTypeName = isBlockTexture ? "block" : "item";
+                string textureTypeName = selectedTextureType;
                 MessageBox.Show(
                     $"Texture '{fileName}' has been imported successfully!\n\n" +
                     $"Type: {textureTypeName}\n" +
@@ -741,9 +759,17 @@ public partial class ModWorkspaceWindow : Window
                 LoadTexturesFromFolder(blockTexturesPath, BlockTexturesPanel, "block");
             }
 
+            // Load crop textures (from the special subdirectory)
+            string cropTexturesPath = Path.Combine(assetsPath, "block", "plant", "crop");
+            if (Directory.Exists(cropTexturesPath))
+            {
+                LoadTexturesFromFolder(cropTexturesPath, CropTexturesPanel, "crop");
+            }
+
             // Update headers visibility based on content
             ItemTexturesHeader.Visibility = ItemTexturesPanel.Children.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
             BlockTexturesHeader.Visibility = BlockTexturesPanel.Children.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+            CropTexturesHeader.Visibility = CropTexturesPanel.Children.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         }
         catch (Exception ex)
         {
@@ -1263,6 +1289,66 @@ public partial class ModWorkspaceWindow : Window
         }
     }
 
+    private void LoadCrops()
+    {
+        try
+        {
+            // Clear existing crops
+            CropsListView.Items.Clear();
+
+            string modDirectory = GetModDirectory();
+            string cropsPath = Path.Combine(modDirectory, "assets", _modId, "blocktypes", "plant", "crop");
+
+            if (!Directory.Exists(cropsPath))
+            {
+                // No crops found yet
+                CropsHeader.Text = "Crops: (No crops created yet)";
+                return;
+            }
+
+            string[] cropFiles = Directory.GetFiles(cropsPath, "*.json");
+
+            foreach (string cropFile in cropFiles)
+            {
+                try
+                {
+                    string cropCode = Path.GetFileNameWithoutExtension(cropFile);
+                    string jsonContent = File.ReadAllText(cropFile);
+
+                    // Parse the crop data
+                    var cropData = System.Text.Json.JsonSerializer.Deserialize<CropData>(jsonContent);
+                    if (cropData != null)
+                    {
+                        // Get the crop name from en.json if available
+                        string cropName = GetCropNameFromEnJson(cropCode);
+
+                        var cropViewModel = new CropViewModel
+                        {
+                            Code = cropCode,
+                            Name = cropName,
+                            Type = "Crop",
+                            GrowthStages = cropData.variantgroups.Length > 0 ? cropData.variantgroups[0].states.Length : 0,
+                            RequiredNutrient = cropData.cropProps?.requiredNutrient ?? "N"
+                        };
+
+                        CropsListView.Items.Add(cropViewModel);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error loading crop {cropFile}: {ex.Message}");
+                }
+            }
+
+            // Update header based on crop count
+            CropsHeader.Text = $"Crops: ({CropsListView.Items.Count})";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading crops: {ex.Message}", "Load Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
     private string GetItemNameFromEnJson(string itemCode)
     {
         try
@@ -1325,6 +1411,38 @@ public partial class ModWorkspaceWindow : Window
 
         // Fallback to block code if name not found
         return blockCode;
+    }
+
+    private string GetCropNameFromEnJson(string cropCode)
+    {
+        try
+        {
+            string modDirectory = GetModDirectory();
+            string langDirectory = Path.Combine(modDirectory, "assets", _modId, "lang");
+            string enJsonPath = Path.Combine(langDirectory, "en.json");
+
+            if (File.Exists(enJsonPath))
+            {
+                string jsonContent = File.ReadAllText(enJsonPath);
+                string cropKey = $"block-crop-{cropCode}";
+
+                // Simple extraction for the crop name
+                string pattern = $"\"{cropKey}\"\\s*:\\s*\"([^\"]+)\"";
+                var match = System.Text.RegularExpressions.Regex.Match(jsonContent, pattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+                if (match.Success)
+                {
+                    return match.Groups[1].Value;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error reading crop name from en.json: {ex.Message}");
+        }
+
+        // Fallback to crop code if name not found
+        return cropCode;
     }
 
     private void ItemsListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -1428,6 +1546,12 @@ public partial class ModWorkspaceWindow : Window
         LoadWorldgen();
     }
 
+    private void RefreshCropsList()
+    {
+        // Refresh the crops list by reloading from disk
+        LoadCrops();
+    }
+
     private void EditItem(string itemCode)
     {
         try
@@ -1510,6 +1634,59 @@ public partial class ModWorkspaceWindow : Window
             MessageBox.Show($"Error loading world gen for editing: {ex.Message}", "Edit Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
+
+    private void EditCropButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var button = sender as Button;
+            if (button != null)
+            {
+                string cropCode = button.Tag as string;
+                if (!string.IsNullOrEmpty(cropCode))
+                {
+                    EditCrop(cropCode);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error editing crop: {ex.Message}", "Edit Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void EditCrop(string cropCode)
+    {
+        try
+        {
+            string modDirectory = GetModDirectory();
+            string cropsPath = Path.Combine(modDirectory, "assets", _modId, "blocktypes", "plant", "crop");
+            string cropFilePath = Path.Combine(cropsPath, $"{cropCode}.json");
+
+            if (!File.Exists(cropFilePath))
+            {
+                MessageBox.Show($"Crop file not found: {cropFilePath}", "File Not Found", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            string jsonContent = File.ReadAllText(cropFilePath);
+            var cropData = System.Text.Json.JsonSerializer.Deserialize<CropData>(jsonContent);
+
+            if (cropData != null)
+            {
+                // Get crop name from en.json
+                string cropName = GetCropNameFromEnJson(cropCode);
+
+                // Open CropCreationWindow with pre-filled data and refresh callback
+                var cropCreationWindow = new CropCreationWindow(_modId, _modName, cropData, cropName, RefreshCropsList);
+                cropCreationWindow.ShowDialog();
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading crop for editing: {ex.Message}", "Edit Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
 }
 
 // View model for items list
@@ -1550,6 +1727,16 @@ public class WorldgenViewModel
     public int Chance { get; set; }
     public double QuantityAvg { get; set; }
     public double QuantityVar { get; set; }
+}
+
+// View model for crops list
+public class CropViewModel
+{
+    public string Code { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string Type { get; set; } = "";
+    public int GrowthStages { get; set; }
+    public string RequiredNutrient { get; set; } = "";
 }
 
 // Data model for grid-based recipes (for JSON deserialization)

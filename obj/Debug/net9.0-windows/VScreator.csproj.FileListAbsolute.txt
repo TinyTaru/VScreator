@@ -35,3 +35,5 @@ c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\refint\VScreator.dll
 c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\VScreator.pdb
 c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\VScreator.genruntimeconfig.cache
 c:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\ref\VScreator.dll
+C:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\CropCreationWindow.g.cs
+C:\git\Mods\VScreator\VScreator\obj\Debug\net9.0-windows\CropCreationWindow.baml
