@@ -55,7 +55,7 @@ public partial class ModWorkspaceWindow : Window
     private void AddRecipeButton_Click(object sender, RoutedEventArgs e)
     {
         // Open the recipe creation window with mod information
-        var recipeCreationWindow = new RecipeCreationWindow(_modId, _modName);
+        var recipeCreationWindow = new RecipeCreationWindow(_modId, _modName, RefreshRecipesList);
         recipeCreationWindow.ShowDialog();
     }
 
@@ -934,6 +934,9 @@ public partial class ModWorkspaceWindow : Window
                 Margin = new Thickness(5),
                 Stretch = Stretch.Uniform
             };
+
+            RenderOptions.SetBitmapScalingMode(textureImage, BitmapScalingMode.NearestNeighbor);
+            textureImage.SnapsToDevicePixels = true;
 
             try
             {

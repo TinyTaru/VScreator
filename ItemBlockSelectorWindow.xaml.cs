@@ -33,12 +33,20 @@ public partial class ItemBlockSelectorWindow : Window
     private string _currentTab = "Items";
     private string _searchText = "";
     private SelectableItem? _selectedItem;
+    private readonly bool _blocksOnly;
 
     public SelectableItem? SelectedItem => _selectedItem;
 
-    public ItemBlockSelectorWindow()
+    public ItemBlockSelectorWindow(bool blocksOnly = false)
     {
+        _blocksOnly = blocksOnly;
         InitializeComponent();
+
+        if (_blocksOnly)
+        {
+            _currentTab = "Blocks";
+            ItemsTabButton.Visibility = Visibility.Collapsed;
+        }
 
         // Load items and blocks in background for better UX
         _ = LoadAvailableItemsAndBlocksAsync();
@@ -55,7 +63,9 @@ public partial class ItemBlockSelectorWindow : Window
         try
         {
             // Load items and blocks asynchronously
-            var loadItemsTask = System.Threading.Tasks.Task.Run(() => LoadItems());
+            var loadItemsTask = _blocksOnly
+                ? System.Threading.Tasks.Task.CompletedTask
+                : System.Threading.Tasks.Task.Run(() => LoadItems());
             var loadBlocksTask = System.Threading.Tasks.Task.Run(() => LoadBlocks());
 
             // Wait for both to complete

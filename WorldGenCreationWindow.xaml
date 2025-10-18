@@ -202,7 +202,8 @@
                     <TextBlock Text="Comment (Optional):" Style="{StaticResource WorldGenLabelStyle}"/>
                     <TextBox x:Name="CommentTextBox" Style="{StaticResource WorldGenInputTextBoxStyle}"
                              AcceptsReturn="True" TextWrapping="Wrap"
-                             MinHeight="120" Text="Lots of bones and carcasses underground"/>
+                             MinHeight="120"/>
+
                 </StackPanel>
 
                 <!-- Right Column -->
