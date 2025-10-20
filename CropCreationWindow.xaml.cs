@@ -33,6 +33,9 @@ public partial class CropCreationWindow : Window
         _modId = modId;
         _modName = modName;
         _refreshCallback = refreshCallback;
+
+        // Load available crop textures
+        LoadCropTextures();
     }
 
     // Constructor for editing existing crops
@@ -43,6 +46,9 @@ public partial class CropCreationWindow : Window
         _modName = modName;
         _existingCropData = existingCropData;
         _existingCropName = existingCropName;
+
+        // Load available crop textures
+        LoadCropTextures();
 
         // Pre-fill the form with existing crop data
         PreFillFormWithExistingData();
@@ -57,6 +63,9 @@ public partial class CropCreationWindow : Window
         _existingCropData = existingCropData;
         _existingCropName = existingCropName;
         _refreshCallback = refreshCallback;
+
+        // Load available crop textures
+        LoadCropTextures();
 
         // Pre-fill the form with existing crop data
         PreFillFormWithExistingData();
@@ -311,113 +320,6 @@ public partial class CropCreationWindow : Window
         }
     }
 
-    private void CancelButton_Click(object sender, RoutedEventArgs e)
-    {
-        this.Close();
-    }
-
-    private void LoadCropTextures()
-    {
-        try
-        {
-            string modDirectory = GetModDirectory();
-            string cropTexturesPath = Path.Combine(modDirectory, "assets", _modId, "textures", "block", "plant", "crop");
-
-            // Force immediate console output
-            Console.WriteLine("=== CROP TEXTURE LOADING DEBUG ===");
-            Console.Out.Flush();
-            Console.WriteLine($"Mod directory: {modDirectory}");
-            Console.Out.Flush();
-            Console.WriteLine($"Mod ID: {_modId}");
-            Console.Out.Flush();
-            Console.WriteLine($"Looking for crop textures in: {cropTexturesPath}");
-            Console.Out.Flush();
-            Console.WriteLine($"Directory exists: {Directory.Exists(cropTexturesPath)}");
-            Console.Out.Flush();
-
-            // Add default empty option first
-            var emptyOption = new ComboBoxItem { Content = "(Auto-generated)", Tag = "" };
-            Texture1ComboBox.Items.Add(emptyOption);
-            Texture2ComboBox.Items.Add(emptyOption);
-            Texture3ComboBox.Items.Add(emptyOption);
-            Texture4ComboBox.Items.Add(emptyOption);
-            Texture5ComboBox.Items.Add(emptyOption);
-
-            if (Directory.Exists(cropTexturesPath))
-            {
-                string[] textureFiles = Directory.GetFiles(cropTexturesPath, "*.png");
-                Console.WriteLine($"Found {textureFiles.Length} texture files in directory");
-
-                if (textureFiles.Length == 0)
-                {
-                    // Check if there are any files at all
-                    string[] allFiles = Directory.GetFiles(cropTexturesPath, "*.*");
-                    Console.WriteLine($"Total files in directory: {allFiles.Length}");
-                    foreach (string file in allFiles)
-                    {
-                        Console.WriteLine($"File: {Path.GetFileName(file)}");
-                    }
-                }
-
-                foreach (string textureFile in textureFiles)
-                {
-                    string fileName = Path.GetFileNameWithoutExtension(textureFile);
-                    string texturePath = $"block/crop/{fileName}";
-
-                    Console.WriteLine($"Adding texture: {texturePath} from file: {textureFile}");
-
-                    var item = new ComboBoxItem
-                    {
-                        Content = texturePath,
-                        Tag = texturePath
-                    };
-
-                    Texture1ComboBox.Items.Add(item);
-                    Texture2ComboBox.Items.Add(item);
-                    Texture3ComboBox.Items.Add(item);
-                    Texture4ComboBox.Items.Add(item);
-                    Texture5ComboBox.Items.Add(item);
-                }
-            }
-            else
-            {
-                Console.WriteLine($"Crop textures directory does not exist: {cropTexturesPath}");
-
-                // Try to create the directory structure for debugging
-                try
-                {
-                    Directory.CreateDirectory(cropTexturesPath);
-                    Console.WriteLine($"Created directory: {cropTexturesPath}");
-                }
-                catch (Exception dirEx)
-                {
-                    Console.WriteLine($"Failed to create directory: {dirEx.Message}");
-                }
-            }
-
-            // Set default selections and log results
-            Console.WriteLine($"=== COMBOBOX POPULATION RESULTS ===");
-            Console.WriteLine($"Texture1ComboBox has {Texture1ComboBox.Items.Count} items");
-            Console.WriteLine($"Texture2ComboBox has {Texture2ComboBox.Items.Count} items");
-            Console.WriteLine($"Texture3ComboBox has {Texture3ComboBox.Items.Count} items");
-            Console.WriteLine($"Texture4ComboBox has {Texture4ComboBox.Items.Count} items");
-            Console.WriteLine($"Texture5ComboBox has {Texture5ComboBox.Items.Count} items");
-
-            if (Texture1ComboBox.Items.Count > 0) Texture1ComboBox.SelectedIndex = 0;
-            if (Texture2ComboBox.Items.Count > 0) Texture2ComboBox.SelectedIndex = 0;
-            if (Texture3ComboBox.Items.Count > 0) Texture3ComboBox.SelectedIndex = 0;
-            if (Texture4ComboBox.Items.Count > 0) Texture4ComboBox.SelectedIndex = 0;
-            if (Texture5ComboBox.Items.Count > 0) Texture5ComboBox.SelectedIndex = 0;
-
-            // Show debug info to user if no textures found
-            if (Texture1ComboBox.Items.Count <= 1)
-            {
-                MessageBox.Show(
-                    $"No crop textures found in:\n{cropTexturesPath}\n\n" +
-                    "Make sure you have:\n" +
-                    "1. Created a mod first\n" +
-                    "2. Imported textures using 'crop' type in Resources tab\n" +
-                    "3. Textures are in the correct directory structure",
                     "No Crop Textures Found",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);

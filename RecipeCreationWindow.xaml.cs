@@ -65,10 +65,11 @@ public partial class RecipeCreationWindow : Window
     private const int InitialLoadCount = 500;
     private const int LoadMoreCount = 200;
 
-    public RecipeCreationWindow(string modId, string modName)
+    public RecipeCreationWindow(string modId, string modName, Action? refreshCallback = null)
     {
         _modId = modId;
         _modName = modName;
+        _refreshCallback = refreshCallback;
 
         try
         {
