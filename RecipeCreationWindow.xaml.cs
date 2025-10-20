@@ -900,18 +900,19 @@ public partial class RecipeCreationWindow : Window
     {
         _currentRecipe.Ingredients.Clear();
 
-        foreach (var row in _currentRecipe.Pattern)
+        // Get the grid container to access grid cells
+        if (CraftingGrid == null)
+            return;
+
+        // Iterate through all grid cells to extract ingredient information
+        foreach (UIElement child in CraftingGrid.Children)
         {
-            foreach (var cell in row)
+            if (child is Border border && border.Child is Image image && image.Tag is RecipeIngredient ingredient)
             {
-                if (!string.IsNullOrEmpty(cell) && !_currentRecipe.Ingredients.ContainsKey(cell))
+                // Use the ingredient's Code as the key to ensure unique ingredients
+                if (!_currentRecipe.Ingredients.ContainsKey(ingredient.Code))
                 {
-                    var ingredient = _availableItems.Concat(_availableBlocks)
-                        .FirstOrDefault(i => i.Code == cell);
-                    if (ingredient != null)
-                    {
-                        _currentRecipe.Ingredients[cell] = ingredient;
-                    }
+                    _currentRecipe.Ingredients[ingredient.Code] = ingredient;
                 }
             }
         }
