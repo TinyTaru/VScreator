@@ -320,10 +320,12 @@ public partial class CropCreationWindow : Window
         }
     }
 
-                    "No Crop Textures Found",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
-            }
+    private void LoadCropTextures()
+    {
+        try
+        {
+            // Implementation for loading crop textures will be added
+            // This method is called from constructors but not yet implemented
         }
         catch (Exception ex)
         {
@@ -336,6 +338,12 @@ public partial class CropCreationWindow : Window
     private void TextureComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         // This method is required for the XAML but we don't need to do anything special here
+    }
+
+    private void CancelButton_Click(object sender, RoutedEventArgs e)
+    {
+        // Close the window without saving
+        this.Close();
     }
 
     private void PreFillFormWithExistingData()
