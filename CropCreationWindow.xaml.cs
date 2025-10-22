@@ -15,6 +15,8 @@ public partial class CropCreationWindow : Window
     private CropData? _existingCropData = null;
     private string _existingCropName = "";
     private Action? _refreshCallback = null;
+    private bool _shapesLoaded = false;
+    private bool _texturesLoaded = false;
 
     public CropCreationWindow(string modId, string modName)
     {
@@ -22,8 +24,13 @@ public partial class CropCreationWindow : Window
         _modId = modId;
         _modName = modName;
 
-        // Load available crop textures
+        // Reset loaded flags
+        _shapesLoaded = false;
+        _texturesLoaded = false;
+
+        // Load available crop textures and shapes
         LoadCropTextures();
+        LoadCropShapes();
     }
 
     // Constructor for creating new crops with refresh callback
@@ -34,8 +41,13 @@ public partial class CropCreationWindow : Window
         _modName = modName;
         _refreshCallback = refreshCallback;
 
-        // Load available crop textures
+        // Reset loaded flags
+        _shapesLoaded = false;
+        _texturesLoaded = false;
+
+        // Load available crop textures and shapes
         LoadCropTextures();
+        LoadCropShapes();
     }
 
     // Constructor for editing existing crops
@@ -47,8 +59,13 @@ public partial class CropCreationWindow : Window
         _existingCropData = existingCropData;
         _existingCropName = existingCropName;
 
-        // Load available crop textures
+        // Reset loaded flags
+        _shapesLoaded = false;
+        _texturesLoaded = false;
+
+        // Load available crop textures and shapes
         LoadCropTextures();
+        LoadCropShapes();
 
         // Pre-fill the form with existing crop data
         PreFillFormWithExistingData();
@@ -64,8 +81,13 @@ public partial class CropCreationWindow : Window
         _existingCropName = existingCropName;
         _refreshCallback = refreshCallback;
 
-        // Load available crop textures
+        // Reset loaded flags
+        _shapesLoaded = false;
+        _texturesLoaded = false;
+
+        // Load available crop textures and shapes
         LoadCropTextures();
+        LoadCropShapes();
 
         // Pre-fill the form with existing crop data
         PreFillFormWithExistingData();
@@ -153,12 +175,13 @@ public partial class CropCreationWindow : Window
 
             // Generate shapeByType entries
             var shapeByType = new Dictionary<string, ShapeData>();
-            for (int i = 0; i < states.Length; i++)
+            for (int i = 0; i < states.Length && i < 5; i++)
             {
                 string stateKey = $"*-{states[i]}";
-                string shapeKey = $"Shape{(i + 1)}TextBox";
-                TextBox? shapeTextBox = FindName(shapeKey) as TextBox;
-                string shapePath = shapeTextBox?.Text ?? $"block/plant/crop/{CropIdTextBox.Text}/stage-{states[i]}";
+                string shapeKey = $"Shape{(i + 1)}ComboBox";
+                ComboBox? shapeComboBox = FindName(shapeKey) as ComboBox;
+                string selectedShape = shapeComboBox?.SelectedItem?.ToString() ?? $"stage-{states[i]}";
+                string shapePath = "block/plant/crop/" + selectedShape;
 
                 shapeByType[stateKey] = new ShapeData
                 {
@@ -168,13 +191,14 @@ public partial class CropCreationWindow : Window
 
             // Generate texturesByType entries
             var texturesByType = new Dictionary<string, Dictionary<string, TextureData>>();
-            for (int i = 0; i < states.Length; i++)
+            for (int i = 0; i < states.Length && i < 5; i++)
             {
                 string stateKey = $"*-{states[i]}";
                 string textureKey = $"Texture{(i + 1)}ComboBox";
                 ComboBox? textureComboBox = FindName(textureKey) as ComboBox;
                 ComboBoxItem? selectedTextureItem = textureComboBox?.SelectedItem as ComboBoxItem;
-                string texturePath = selectedTextureItem?.Content?.ToString() ?? $"block/crop/{CropIdTextBox.Text}/stage-{states[i]}";
+                string selectedTexture = selectedTextureItem?.Content?.ToString() ?? $"stage-{states[i]}";
+                string texturePath = "block/plant/crop/" + selectedTexture;
 
                 texturesByType[stateKey] = new Dictionary<string, TextureData>
                 {
@@ -322,10 +346,48 @@ public partial class CropCreationWindow : Window
 
     private void LoadCropTextures()
     {
+        if (_texturesLoaded) return;
+
         try
         {
-            // Implementation for loading crop textures will be added
-            // This method is called from constructors but not yet implemented
+            // Clear existing items
+            Texture1ComboBox.Items.Clear();
+            Texture2ComboBox.Items.Clear();
+            Texture3ComboBox.Items.Clear();
+            Texture4ComboBox.Items.Clear();
+            Texture5ComboBox.Items.Clear();
+
+            string modDirectory = GetModDirectory();
+            string cropTexturesPath = Path.Combine(modDirectory, "assets", _modId, "textures", "block", "plant", "crop");
+
+            if (Directory.Exists(cropTexturesPath))
+            {
+                string[] textureFiles = Directory.GetFiles(cropTexturesPath, "*.png");
+
+                foreach (string textureFile in textureFiles)
+                {
+                    string fileName = Path.GetFileNameWithoutExtension(textureFile);
+
+                    // Add to all texture ComboBoxes
+                    Texture1ComboBox.Items.Add(fileName);
+                    Texture2ComboBox.Items.Add(fileName);
+                    Texture3ComboBox.Items.Add(fileName);
+                    Texture4ComboBox.Items.Add(fileName);
+                    Texture5ComboBox.Items.Add(fileName);
+                }
+            }
+            else
+            {
+                // No crop textures found, add default
+                string defaultTexture = $"stage-1";
+                Texture1ComboBox.Items.Add(defaultTexture);
+                Texture2ComboBox.Items.Add(defaultTexture.Replace("stage-1", "stage-2"));
+                Texture3ComboBox.Items.Add(defaultTexture.Replace("stage-1", "stage-3"));
+                Texture4ComboBox.Items.Add(defaultTexture.Replace("stage-1", "stage-4"));
+                Texture5ComboBox.Items.Add(defaultTexture.Replace("stage-1", "stage-5"));
+            }
+
+            _texturesLoaded = true;
         }
         catch (Exception ex)
         {
@@ -335,7 +397,65 @@ public partial class CropCreationWindow : Window
         }
     }
 
+    private void LoadCropShapes()
+    {
+        if (_shapesLoaded) return;
+
+        try
+        {
+            // Clear existing items
+            Shape1ComboBox.Items.Clear();
+            Shape2ComboBox.Items.Clear();
+            Shape3ComboBox.Items.Clear();
+            Shape4ComboBox.Items.Clear();
+            Shape5ComboBox.Items.Clear();
+
+            string modDirectory = GetModDirectory();
+            string cropShapesPath = Path.Combine(modDirectory, "assets", _modId, "shapes", "block", "plant", "crop");
+
+            if (Directory.Exists(cropShapesPath))
+            {
+                string[] shapeFiles = Directory.GetFiles(cropShapesPath, "*.json");
+
+                foreach (string shapeFile in shapeFiles)
+                {
+                    string fileName = Path.GetFileNameWithoutExtension(shapeFile);
+
+                    // Add to all shape ComboBoxes
+                    Shape1ComboBox.Items.Add(fileName);
+                    Shape2ComboBox.Items.Add(fileName);
+                    Shape3ComboBox.Items.Add(fileName);
+                    Shape4ComboBox.Items.Add(fileName);
+                    Shape5ComboBox.Items.Add(fileName);
+                }
+            }
+            else
+            {
+                // No crop shapes found, add default
+                string defaultShape = $"stage-1";
+                Shape1ComboBox.Items.Add(defaultShape);
+                Shape2ComboBox.Items.Add(defaultShape.Replace("stage-1", "stage-2"));
+                Shape3ComboBox.Items.Add(defaultShape.Replace("stage-1", "stage-3"));
+                Shape4ComboBox.Items.Add(defaultShape.Replace("stage-1", "stage-4"));
+                Shape5ComboBox.Items.Add(defaultShape.Replace("stage-1", "stage-5"));
+            }
+
+            _shapesLoaded = true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading crop shapes: {ex.Message}");
+            Console.Out.Flush();
+            MessageBox.Show($"Error loading crop shapes: {ex.Message}", "Load Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
     private void TextureComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        // This method is required for the XAML but we don't need to do anything special here
+    }
+
+    private void ShapeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         // This method is required for the XAML but we don't need to do anything special here
     }
@@ -361,21 +481,26 @@ public partial class CropCreationWindow : Window
             }
 
             // Fill shapes
-            for (int i = 0; i < _existingCropData.variantgroups[0].states.Length; i++)
+            for (int i = 0; i < _existingCropData.variantgroups[0].states.Length && i < 5; i++)
             {
                 string state = _existingCropData.variantgroups[0].states[i];
                 string stateKey = $"*-{state}";
-                string shapeKey = $"Shape{(i + 1)}TextBox";
+                string shapeKey = $"Shape{(i + 1)}ComboBox";
 
                 if (_existingCropData.shapeByType.TryGetValue(stateKey, out ShapeData? shapeData))
                 {
-                    TextBox? shapeTextBox = FindName(shapeKey) as TextBox;
-                    shapeTextBox!.Text = shapeData.@base;
+                    ComboBox? shapeComboBox = FindName(shapeKey) as ComboBox;
+                    string shapeBase = shapeData.@base;
+                    if (shapeBase.StartsWith("block/plant/crop/"))
+                    {
+                        string shapeName = shapeBase.Substring(16); // Remove "block/plant/crop/" prefix
+                        shapeComboBox!.SelectedItem = shapeName;
+                    }
                 }
             }
 
             // Fill textures
-            for (int i = 0; i < _existingCropData.variantgroups[0].states.Length; i++)
+            for (int i = 0; i < _existingCropData.variantgroups[0].states.Length && i < 5; i++)
             {
                 string state = _existingCropData.variantgroups[0].states[i];
                 string stateKey = $"*-{state}";
@@ -384,8 +509,13 @@ public partial class CropCreationWindow : Window
                 if (_existingCropData.texturesByType.TryGetValue(stateKey, out Dictionary<string, TextureData>? textureData) &&
                     textureData.TryGetValue("plant", out TextureData? plantTexture))
                 {
-                    TextBox? textureTextBox = FindName(textureKey) as TextBox;
-                    textureTextBox!.Text = plantTexture.@base;
+                    ComboBox? textureComboBox = FindName(textureKey) as ComboBox;
+                    string textureBase = plantTexture.@base;
+                    if (textureBase.StartsWith("block/plant/crop/"))
+                    {
+                        string textureName = textureBase.Substring(17); // Remove "block/plant/crop/" prefix
+                        textureComboBox!.SelectedItem = textureName;
+                    }
                 }
             }
 

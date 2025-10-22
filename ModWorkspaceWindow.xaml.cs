@@ -443,7 +443,7 @@ public partial class ModWorkspaceWindow : Window
                 selectedPath = _selectedTexturePath;
                 selectedType = _selectedTextureType;
                 itemType = "texture";
-                itemTypeName = selectedType == "item" ? "Item" : "Block";
+                itemTypeName = selectedType == "item" ? "Item" : (selectedType == "crop" ? "Crop" : "Block");
             }
             else
             {
@@ -451,7 +451,7 @@ public partial class ModWorkspaceWindow : Window
                 selectedPath = _selectedModelPath;
                 selectedType = _selectedModelType;
                 itemType = "shape";
-                itemTypeName = selectedType == "item" ? "Item" : (selectedType == "crop" ? "Crop" : "Block");
+                itemTypeName = selectedType == "item" ? "Item" : (selectedType == "crop" ? "Crop Shape" : "Block");
             }
 
             // Get item information
@@ -648,11 +648,21 @@ public partial class ModWorkspaceWindow : Window
                     return; // User cancelled
                 }
 
-                bool isBlockModel = (textureTypeDialog.SelectedTextureType == "block");
-
                 // Create folder structure
                 string modDirectory = GetModDirectory();
-                string modelType = isBlockModel ? "block" : "item";
+                string modelType;
+                if (textureTypeDialog.SelectedTextureType == "crop")
+                {
+                    modelType = "block/plant/crop";
+                }
+                else if (textureTypeDialog.SelectedTextureType == "block")
+                {
+                    modelType = "block";
+                }
+                else
+                {
+                    modelType = "item";
+                }
                 string modelPath = Path.Combine(modDirectory, "assets", _modId, "shapes", modelType);
 
                 // Create directories if they don't exist
@@ -665,7 +675,7 @@ public partial class ModWorkspaceWindow : Window
                 File.Copy(selectedFilePath, destinationPath, true);
 
                 // Show success message
-                string shapeTypeName = isBlockModel ? "block" : "item";
+                string shapeTypeName = textureTypeDialog.SelectedTextureType;
                 MessageBox.Show(
                     $"Shape '{fileName}' has been imported successfully!\n\n" +
                     $"Type: {shapeTypeName}\n" +
@@ -736,6 +746,7 @@ public partial class ModWorkspaceWindow : Window
             // Clear existing textures
             ItemTexturesPanel.Children.Clear();
             BlockTexturesPanel.Children.Clear();
+            CropTexturesPanel.Children.Clear();
 
             string modDirectory = GetModDirectory();
             string assetsPath = Path.Combine(modDirectory, "assets", _modId, "textures");

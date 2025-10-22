@@ -185,24 +185,24 @@
                 <TextBlock Text="Shapes" Style="{StaticResource SectionHeaderStyle}"/>
 
                 <TextBlock Text="State 1:" Style="{StaticResource CropLabelStyle}"/>
-                <TextBox x:Name="Shape1TextBox" Style="{StaticResource CropInputTextBoxStyle}"
-                         Text="block/plant/crop/mycrop/stage-1"/>
+                <ComboBox x:Name="Shape1ComboBox" Style="{StaticResource CropComboBoxStyle}"
+                          SelectionChanged="ShapeComboBox_SelectionChanged"/>
 
                 <TextBlock Text="State 2:" Style="{StaticResource CropLabelStyle}"/>
-                <TextBox x:Name="Shape2TextBox" Style="{StaticResource CropInputTextBoxStyle}"
-                         Text="block/plant/crop/mycrop/stage-2"/>
+                <ComboBox x:Name="Shape2ComboBox" Style="{StaticResource CropComboBoxStyle}"
+                          SelectionChanged="ShapeComboBox_SelectionChanged"/>
 
                 <TextBlock Text="State 3:" Style="{StaticResource CropLabelStyle}"/>
-                <TextBox x:Name="Shape3TextBox" Style="{StaticResource CropInputTextBoxStyle}"
-                         Text="block/plant/crop/mycrop/stage-3"/>
+                <ComboBox x:Name="Shape3ComboBox" Style="{StaticResource CropComboBoxStyle}"
+                          SelectionChanged="ShapeComboBox_SelectionChanged"/>
 
                 <TextBlock Text="State 4:" Style="{StaticResource CropLabelStyle}"/>
-                <TextBox x:Name="Shape4TextBox" Style="{StaticResource CropInputTextBoxStyle}"
-                         Text="block/plant/crop/mycrop/stage-4"/>
+                <ComboBox x:Name="Shape4ComboBox" Style="{StaticResource CropComboBoxStyle}"
+                          SelectionChanged="ShapeComboBox_SelectionChanged"/>
 
                 <TextBlock Text="State 5:" Style="{StaticResource CropLabelStyle}"/>
-                <TextBox x:Name="Shape5TextBox" Style="{StaticResource CropInputTextBoxStyle}"
-                         Text="block/plant/crop/mycrop/stage-5"/>
+                <ComboBox x:Name="Shape5ComboBox" Style="{StaticResource CropComboBoxStyle}"
+                          SelectionChanged="ShapeComboBox_SelectionChanged"/>
 
                 <!-- Textures Section -->
                 <TextBlock Text="Textures" Style="{StaticResource SectionHeaderStyle}"/>
