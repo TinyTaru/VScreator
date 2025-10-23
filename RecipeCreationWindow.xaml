@@ -149,6 +149,9 @@
                             <Button x:Name="BlocksTabButton" Content="Blocks" 
                                     Style="{StaticResource TabButtonStyle}"
                                     Click="BlocksTabButton_Click"/>
+                            <Button x:Name="CustomTabButton" Content="Custom" 
+                                    Style="{StaticResource TabButtonStyle}"
+                                    Click="CustomTabButton_Click" Tag="Custom"/>
                         </StackPanel>
 
                         <!-- Search Bar -->

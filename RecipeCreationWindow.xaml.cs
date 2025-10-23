@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Windows.Media;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
@@ -51,6 +52,7 @@ public partial class RecipeCreationWindow : Window
     private Action? _refreshCallback = null;
     private ObservableCollection<RecipeIngredient> _availableItems = new ObservableCollection<RecipeIngredient>();
     private ObservableCollection<RecipeIngredient> _availableBlocks = new ObservableCollection<RecipeIngredient>();
+    private ObservableCollection<RecipeIngredient> _customItems = new ObservableCollection<RecipeIngredient>();
     private ObservableCollection<RecipeIngredient> _filteredIngredients = new ObservableCollection<RecipeIngredient>();
     private RecipeIngredient? _selectedIngredient;
     private RecipeIngredient? _selectedOutput;
@@ -144,6 +146,35 @@ public partial class RecipeCreationWindow : Window
         // Set up event handlers
         ItemsTabButton.Tag = "Items";
         BlocksTabButton.Tag = "Blocks";
+        CustomTabButton.Tag = "Custom";
+        
+        // Set initial tab
+        _currentTab = "Items";
+        UpdateTabAppearance();
+    }
+    
+    private void UpdateTabAppearance()
+    {
+        // Reset all tab button styles
+        ItemsTabButton.Style = (Style)FindResource("TabButtonStyle");
+        BlocksTabButton.Style = (Style)FindResource("TabButtonStyle");
+        CustomTabButton.Style = (Style)FindResource("TabButtonStyle");
+        
+        // Highlight the active tab
+        var activeTabButton = _currentTab switch
+        {
+            "Items" => ItemsTabButton,
+            "Blocks" => BlocksTabButton,
+            "Custom" => CustomTabButton,
+            _ => ItemsTabButton
+        };
+        
+        if (activeTabButton != null)
+        {
+            var activeStyle = new Style(typeof(Button), (Style)FindResource("TabButtonStyle"));
+            activeStyle.Setters.Add(new Setter(Button.BackgroundProperty, new SolidColorBrush(Color.FromRgb(0x3f, 0x3d, 0x3b)))); // Slightly lighter background for active tab
+            activeTabButton.Style = activeStyle;
+        }
     }
 
     private void PreFillFormWithExistingData()
@@ -313,21 +344,23 @@ public partial class RecipeCreationWindow : Window
 
         try
         {
-            // Load items and blocks asynchronously
+            // Load items, blocks, and custom items asynchronously
             var loadItemsTask = Task.Run(() => LoadItems());
             var loadBlocksTask = Task.Run(() => LoadBlocks());
+            var loadCustomTask = Task.Run(() => LoadCustomItemsAndBlocks());
 
-            // Wait for both to complete
-            await Task.WhenAll(loadItemsTask, loadBlocksTask);
+            // Wait for all to complete
+            await Task.WhenAll(loadItemsTask, loadBlocksTask, loadCustomTask);
 
             System.Diagnostics.Debug.WriteLine("=== Calling DisplayIngredients ===");
             DisplayIngredients();
             System.Diagnostics.Debug.WriteLine("=== LoadAvailableItemsAndBlocks completed ===");
 
             // Log loading completion for debugging (non-blocking)
-            System.Diagnostics.Debug.WriteLine($"✓ Loaded {_availableItems.Count} items and {_availableBlocks.Count} blocks successfully");
+            System.Diagnostics.Debug.WriteLine($"✓ Loaded {_availableItems.Count} items, {_availableBlocks.Count} blocks, and {_customItems.Count} custom items successfully");
             System.Diagnostics.Debug.WriteLine($"Sample items: {string.Join(", ", _availableItems.Take(3).Select(i => i.DisplayName))}");
             System.Diagnostics.Debug.WriteLine($"Sample blocks: {string.Join(", ", _availableBlocks.Take(3).Select(i => i.DisplayName))}");
+            System.Diagnostics.Debug.WriteLine($"Sample custom items: {string.Join(", ", _customItems.Take(3).Select(i => i.DisplayName))}");
         }
         catch (Exception ex)
         {
@@ -488,9 +521,17 @@ public partial class RecipeCreationWindow : Window
         System.Diagnostics.Debug.WriteLine($"Current tab: {_currentTab}");
         System.Diagnostics.Debug.WriteLine($"Available items count: {_availableItems.Count}");
         System.Diagnostics.Debug.WriteLine($"Available blocks count: {_availableBlocks.Count}");
+        System.Diagnostics.Debug.WriteLine($"Custom items count: {_customItems.Count}");
 
-        var ingredientsToDisplay = _currentTab == "Items" ? _availableItems : _availableBlocks;
-        System.Diagnostics.Debug.WriteLine($"Ingredients to display: {ingredientsToDisplay.Count}");
+        var ingredientsToDisplay = _currentTab switch
+        {
+            "Items" => _availableItems,
+            "Blocks" => _availableBlocks,
+            "Custom" => _customItems,
+            _ => _availableItems // Default to items if unknown tab
+        };
+        
+        System.Diagnostics.Debug.WriteLine($"Ingredients to display in '{_currentTab}': {ingredientsToDisplay.Count}");
 
         try
         {
@@ -931,16 +972,273 @@ public partial class RecipeCreationWindow : Window
                        "Recipe Type", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
+    private void LoadCustomItemsAndBlocks()
+    {
+        _customItems.Clear();
+        string modDirectory = GetModDirectory();
+        string assetsPath = Path.Combine(modDirectory, "assets", _modId);
+        
+        Console.WriteLine($"=== Loading Custom Items ===");
+        Console.WriteLine($"Mod Directory: {modDirectory}");
+        Console.WriteLine($"Assets Path: {assetsPath}");
+        Console.WriteLine($"Mod ID: {_modId}");
+        
+        System.Diagnostics.Debug.WriteLine($"=== Loading Custom Items ===");
+        System.Diagnostics.Debug.WriteLine($"Mod Directory: {modDirectory}");
+        System.Diagnostics.Debug.WriteLine($"Assets Path: {assetsPath}");
+        System.Diagnostics.Debug.WriteLine($"Mod ID: {_modId}");
+        
+        // Load custom items
+        string itemsPath = Path.Combine(assetsPath, "itemtypes");
+        System.Diagnostics.Debug.WriteLine($"Looking for custom items in: {itemsPath}");
+        System.Diagnostics.Debug.WriteLine($"Directory exists: {Directory.Exists(itemsPath)}");
+        
+        if (Directory.Exists(itemsPath))
+        {
+            var itemFiles = Directory.GetFiles(itemsPath, "*.json");
+            Console.WriteLine($"Found {itemFiles.Length} item files");
+            System.Diagnostics.Debug.WriteLine($"Found {itemFiles.Length} item files");
+            
+            foreach (var file in itemFiles)
+            {
+                try
+                {
+                    Console.WriteLine($"Processing item file: {file}");
+                    System.Diagnostics.Debug.WriteLine($"Processing item file: {file}");
+                    string json = File.ReadAllText(file);
+                    Console.WriteLine($"JSON content: {json.Substring(0, Math.Min(200, json.Length))}...");
+                    
+                    // Use case-insensitive dictionary for JSON keys
+                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    var itemData = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json, options);
+                    
+                    if (itemData == null)
+                    {
+                        MessageBox.Show($"Failed to parse JSON from:\n{Path.GetFileName(file)}\n\nJSON content:\n{json.Substring(0, Math.Min(500, json.Length))}", 
+                                       "JSON Parse Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        Console.WriteLine($"  ERROR: Failed to deserialize JSON from {file}");
+                        continue;
+                    }
+                    
+                    Console.WriteLine($"  JSON has {itemData.Count} keys: {string.Join(", ", itemData.Keys)}");
+                    
+                    // Try to get code field (case-insensitive)
+                    JsonElement codeElement;
+                    bool hasCode = itemData.TryGetValue("code", out codeElement) || 
+                                  itemData.TryGetValue("Code", out codeElement);
+                    
+                    if (hasCode)
+                    {
+                        string code = codeElement.GetString() ?? "";
+                        string displayName = Path.GetFileNameWithoutExtension(file).Replace("-", " ").Replace("_", " ");
+                        
+                        // Fix texture path - should be relative to assets folder
+                        string texturePath = Path.Combine(assetsPath, "textures", "item", $"{Path.GetFileNameWithoutExtension(file)}.png");
+                        Console.WriteLine($"  Code: {code}, Display: {displayName}");
+                        Console.WriteLine($"  Texture path: {texturePath}");
+                        Console.WriteLine($"  Texture exists: {File.Exists(texturePath)}");
+                        
+                        var ingredient = new RecipeIngredient
+                        {
+                            Type = "item",
+                            Code = code,
+                            DisplayName = displayName,
+                            Quantity = 1
+                        };
+
+                        if (File.Exists(texturePath))
+                        {
+                            var bitmap = new BitmapImage();
+                            bitmap.BeginInit();
+                            bitmap.UriSource = new Uri(texturePath, UriKind.Absolute);
+                            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                            bitmap.DecodePixelWidth = 64;
+                            bitmap.DecodePixelHeight = 64;
+                            bitmap.EndInit();
+                            bitmap.Freeze();
+                            ingredient.Icon = bitmap;
+                            ingredient.IconPath = texturePath;
+                        }
+
+                        _customItems.Add(ingredient);
+                        Console.WriteLine($"  ✓ Added custom item: {displayName}");
+                        System.Diagnostics.Debug.WriteLine($"  ✓ Added custom item: {displayName}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"  ERROR: No 'code' field found in {file}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"ERROR loading custom item {file}: {ex.Message}");
+                    Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                    System.Diagnostics.Debug.WriteLine($"Error loading custom item {file}: {ex.Message}");
+                }
+            }
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine($"Custom items directory does not exist: {itemsPath}");
+        }
+
+        // Load custom blocks
+        string blocksPath = Path.Combine(assetsPath, "blocktypes");
+        System.Diagnostics.Debug.WriteLine($"Looking for custom blocks in: {blocksPath}");
+        System.Diagnostics.Debug.WriteLine($"Directory exists: {Directory.Exists(blocksPath)}");
+        
+        if (Directory.Exists(blocksPath))
+        {
+            var blockFiles = Directory.GetFiles(blocksPath, "*.json");
+            System.Diagnostics.Debug.WriteLine($"Found {blockFiles.Length} block files");
+            
+            foreach (var file in blockFiles)
+            {
+                try
+                {
+                    System.Diagnostics.Debug.WriteLine($"Processing block file: {file}");
+                    string json = File.ReadAllText(file);
+                    var blockData = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);
+                    
+                    if (blockData != null)
+                    {
+                        // Try to get code field (case-insensitive)
+                        JsonElement codeElement;
+                        bool hasCode = blockData.TryGetValue("code", out codeElement) || 
+                                      blockData.TryGetValue("Code", out codeElement);
+                        
+                        if (hasCode)
+                        {
+                            string code = codeElement.GetString() ?? "";
+                        string displayName = Path.GetFileNameWithoutExtension(file).Replace("-", " ").Replace("_", " ");
+                        
+                        // Try to find texture - check multiple possible paths
+                        string baseFileName = Path.GetFileNameWithoutExtension(file);
+                        string texturesBlockPath = Path.Combine(assetsPath, "textures", "block");
+                        
+                        string? texturePath = null;
+                        
+                        // Try exact match first
+                        string exactPath = Path.Combine(texturesBlockPath, $"{baseFileName}.png");
+                        if (File.Exists(exactPath))
+                        {
+                            texturePath = exactPath;
+                        }
+                        else
+                        {
+                            // If exact match not found, try to find any PNG in the block textures folder
+                            if (Directory.Exists(texturesBlockPath))
+                            {
+                                var pngFiles = Directory.GetFiles(texturesBlockPath, "*.png");
+                                if (pngFiles.Length > 0)
+                                {
+                                    // Use the first PNG found as fallback
+                                    texturePath = pngFiles[0];
+                                    Console.WriteLine($"  Using fallback texture: {Path.GetFileName(texturePath)}");
+                                }
+                            }
+                        }
+                        
+                        System.Diagnostics.Debug.WriteLine($"  Code: {code}, Display: {displayName}");
+                        System.Diagnostics.Debug.WriteLine($"  Texture path: {texturePath ?? "None"}");
+                        System.Diagnostics.Debug.WriteLine($"  Texture exists: {texturePath != null && File.Exists(texturePath)}");
+                        
+                        var ingredient = new RecipeIngredient
+                        {
+                            Type = "block",
+                            Code = code,
+                            DisplayName = displayName,
+                            Quantity = 1
+                        };
+
+                        if (texturePath != null && File.Exists(texturePath))
+                        {
+                            try
+                            {
+                                var bitmap = new BitmapImage();
+                                bitmap.BeginInit();
+                                bitmap.UriSource = new Uri(texturePath, UriKind.Absolute);
+                                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                                bitmap.DecodePixelWidth = 64;
+                                bitmap.DecodePixelHeight = 64;
+                                bitmap.EndInit();
+                                bitmap.Freeze();
+                                ingredient.Icon = bitmap;
+                                ingredient.IconPath = texturePath;
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"  Error loading texture: {ex.Message}");
+                            }
+                        }
+
+                        _customItems.Add(ingredient);
+                        System.Diagnostics.Debug.WriteLine($"  ✓ Added custom block: {displayName}");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error loading custom block {file}: {ex.Message}");
+                }
+            }
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine($"Custom blocks directory does not exist: {blocksPath}");
+        }
+        
+        System.Diagnostics.Debug.WriteLine($"=== Total custom items loaded: {_customItems.Count} ===");
+        Console.WriteLine($"=== Total custom items loaded: {_customItems.Count} ===");
+    }
+
     private void ItemsTabButton_Click(object sender, RoutedEventArgs e)
     {
         _currentTab = "Items";
+        UpdateTabAppearance();
         DisplayIngredients();
     }
 
     private void BlocksTabButton_Click(object sender, RoutedEventArgs e)
     {
         _currentTab = "Blocks";
+        UpdateTabAppearance();
         DisplayIngredients();
+    }
+
+    private void CustomTabButton_Click(object sender, RoutedEventArgs e)
+    {
+        _currentTab = "Custom";
+        UpdateTabAppearance();
+        DisplayIngredients();
+        
+        // Get paths for debugging
+        string modDirectory = GetModDirectory();
+        string assetsPath = Path.Combine(modDirectory, "assets", _modId);
+        string itemsPath = Path.Combine(assetsPath, "itemtypes");
+        string blocksPath = Path.Combine(assetsPath, "blocktypes");
+        
+        // Get file counts
+        int itemFileCount = Directory.Exists(itemsPath) ? Directory.GetFiles(itemsPath, "*.json").Length : 0;
+        int blockFileCount = Directory.Exists(blocksPath) ? Directory.GetFiles(blocksPath, "*.json").Length : 0;
+        string itemFiles = Directory.Exists(itemsPath) ? string.Join("\n", Directory.GetFiles(itemsPath, "*.json").Select(f => Path.GetFileName(f))) : "None";
+        string blockFiles = Directory.Exists(blocksPath) ? string.Join("\n", Directory.GetFiles(blocksPath, "*.json").Select(f => Path.GetFileName(f))) : "None";
+        
+        // Show debug info when clicking custom tab
+        MessageBox.Show($"Custom Tab Debug\n\n" +
+                       $"Custom items loaded: {_customItems.Count}\n" +
+                       $"Filtered count: {_filteredIngredients.Count}\n\n" +
+                       $"Mod ID: {_modId}\n\n" +
+                       $"Items Path: {itemsPath}\n" +
+                       $"Items Path Exists: {Directory.Exists(itemsPath)}\n" +
+                       $"JSON files found: {itemFileCount}\n" +
+                       $"Files: {itemFiles}\n\n" +
+                       $"Blocks Path: {blocksPath}\n" +
+                       $"Blocks Path Exists: {Directory.Exists(blocksPath)}\n" +
+                       $"JSON files found: {blockFileCount}\n" +
+                       $"Files: {blockFiles}\n\n" +
+                       $"Loaded items:\n{((_customItems.Count > 0) ? string.Join("\n", _customItems.Take(10).Select(i => i.DisplayName)) : "NONE")}",
+                       "Custom Tab Debug", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private void IngredientBorder_Click(object sender, MouseButtonEventArgs e)
