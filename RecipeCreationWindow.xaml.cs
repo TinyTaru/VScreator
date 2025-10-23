@@ -1078,15 +1078,18 @@ public partial class RecipeCreationWindow : Window
         var recipeData = new
         {
             enabled = true,
-            ingredientPattern = string.Join(",", patternRows),
-            width = _currentGridSize,
-            height = _currentGridSize,
-            ingredients = ingredientsWithLetters,
-            output = new
+            recipe = new
             {
-                type = _currentRecipe.OutputType,
-                code = _currentRecipe.OutputCode,
-                quantity = _currentRecipe.OutputQuantity
+                ingredientPattern = string.Join(",", patternRows),
+                width = _currentGridSize,
+                height = _currentGridSize,
+                ingredients = ingredientsWithLetters,
+                output = new
+                {
+                    type = _currentRecipe.OutputType,
+                    code = _currentRecipe.OutputCode,
+                    quantity = _currentRecipe.OutputQuantity
+                }
             }
         };
 
