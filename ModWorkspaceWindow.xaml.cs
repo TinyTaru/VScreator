@@ -250,14 +250,15 @@ public partial class ModWorkspaceWindow : Window
             {
                 Title = "Export Successful",
                 Width = 400,
-                Height = 200,
+                Height = 250,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
                 Owner = this,
                 Background = new SolidColorBrush(Color.FromRgb(31, 29, 27)),
                 Foreground = new SolidColorBrush(Colors.White),
                 BorderBrush = new SolidColorBrush(Color.FromRgb(135, 142, 76)),
                 BorderThickness = new Thickness(2),
-                ResizeMode = ResizeMode.NoResize
+                ResizeMode = ResizeMode.NoResize,
+                SizeToContent = SizeToContent.Height
             };
 
             // Create main stack panel
