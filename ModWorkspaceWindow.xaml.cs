@@ -587,22 +587,33 @@ public partial class ModWorkspaceWindow : Window
                 // Create directories if they don't exist
                 Directory.CreateDirectory(texturePath);
 
-                // Copy file to destination
-                string fileName = Path.GetFileName(selectedFilePath);
-                string destinationPath = Path.Combine(texturePath, fileName);
+                // Sanitize filename: remove spaces and convert to lowercase
+                string originalFileName = Path.GetFileName(selectedFilePath);
+                string fileExtension = Path.GetExtension(originalFileName);
+                string fileNameWithoutExt = Path.GetFileNameWithoutExtension(originalFileName);
+                
+                // Remove spaces and convert to lowercase
+                string sanitizedFileName = fileNameWithoutExt.Replace(" ", "").ToLower() + fileExtension.ToLower();
+                
+                string destinationPath = Path.Combine(texturePath, sanitizedFileName);
 
                 File.Copy(selectedFilePath, destinationPath, true);
 
                 // Show success message
                 string textureTypeName = selectedTextureType;
-                MessageBox.Show(
-                    $"Texture '{fileName}' has been imported successfully!\n\n" +
-                    $"Type: {textureTypeName}\n" +
-                    $"Location: {texturePath}\n" +
-                    $"Mod: {_modName}",
-                    "Import Successful",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
+                string message = $"Texture imported successfully!\n\n" +
+                                $"Original: {originalFileName}\n" +
+                                $"Saved as: {sanitizedFileName}\n\n" +
+                                $"Type: {textureTypeName}\n" +
+                                $"Location: {texturePath}\n" +
+                                $"Mod: {_modName}";
+                
+                if (originalFileName != sanitizedFileName)
+                {
+                    message += "\n\n(Filename was sanitized: spaces removed and converted to lowercase)";
+                }
+                
+                MessageBox.Show(message, "Import Successful", MessageBoxButton.OK, MessageBoxImage.Information);
 
                 // Refresh texture gallery if we're currently in Resources tab
                 if (_currentTab == "Resources")
@@ -668,22 +679,33 @@ public partial class ModWorkspaceWindow : Window
                 // Create directories if they don't exist
                 Directory.CreateDirectory(modelPath);
 
-                // Copy file to destination
-                string fileName = Path.GetFileName(selectedFilePath);
-                string destinationPath = Path.Combine(modelPath, fileName);
+                // Sanitize filename: remove spaces and convert to lowercase
+                string originalFileName = Path.GetFileName(selectedFilePath);
+                string fileExtension = Path.GetExtension(originalFileName);
+                string fileNameWithoutExt = Path.GetFileNameWithoutExtension(originalFileName);
+                
+                // Remove spaces and convert to lowercase
+                string sanitizedFileName = fileNameWithoutExt.Replace(" ", "").ToLower() + fileExtension.ToLower();
+                
+                string destinationPath = Path.Combine(modelPath, sanitizedFileName);
 
                 File.Copy(selectedFilePath, destinationPath, true);
 
                 // Show success message
                 string shapeTypeName = textureTypeDialog.SelectedTextureType;
-                MessageBox.Show(
-                    $"Shape '{fileName}' has been imported successfully!\n\n" +
-                    $"Type: {shapeTypeName}\n" +
-                    $"Location: {modelPath}\n" +
-                    $"Mod: {_modName}",
-                    "Import Successful",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
+                string message = $"Shape imported successfully!\n\n" +
+                                $"Original: {originalFileName}\n" +
+                                $"Saved as: {sanitizedFileName}\n\n" +
+                                $"Type: {shapeTypeName}\n" +
+                                $"Location: {modelPath}\n" +
+                                $"Mod: {_modName}";
+                
+                if (originalFileName != sanitizedFileName)
+                {
+                    message += "\n\n(Filename was sanitized: spaces removed and converted to lowercase)";
+                }
+                
+                MessageBox.Show(message, "Import Successful", MessageBoxButton.OK, MessageBoxImage.Information);
 
                 // Refresh model gallery if we're currently in Resources tab
                 if (_currentTab == "Resources")
