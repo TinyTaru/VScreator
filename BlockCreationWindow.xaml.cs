@@ -391,6 +391,13 @@ public partial class BlockCreationWindow : Window
                 }
             }
 
+            // Add mod entry if it doesn't exist
+            string modKey = $"game:tabname-{_modId}";
+            if (!langEntries.ContainsKey(modKey))
+            {
+                langEntries[modKey] = _modName;
+            }
+
             // Add or update the block entry
             string blockKey = $"block-{blockCode}";
             langEntries[blockKey] = blockName;
@@ -454,6 +461,13 @@ public partial class BlockCreationWindow : Window
                     // If reading fails, start with empty dictionary
                     langEntries = new Dictionary<string, string>();
                 }
+            }
+
+            // Add mod entry if it doesn't exist
+            string modKey = $"game:tabname-{_modId}";
+            if (!langEntries.ContainsKey(modKey))
+            {
+                langEntries[modKey] = _modName;
             }
 
             // Remove old entry

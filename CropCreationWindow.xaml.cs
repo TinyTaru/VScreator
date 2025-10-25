@@ -600,6 +600,13 @@ public partial class CropCreationWindow : Window
                 }
             }
 
+            // Add mod entry if it doesn't exist
+            string modKey = $"game:tabname-{_modId}";
+            if (!langEntries.ContainsKey(modKey))
+            {
+                langEntries[modKey] = _modName;
+            }
+
             // Add or update the crop entry
             string cropKey = $"block-crop-{cropCode}";
             langEntries[cropKey] = cropName;
@@ -663,6 +670,13 @@ public partial class CropCreationWindow : Window
                     // If reading fails, start with empty dictionary
                     langEntries = new Dictionary<string, string>();
                 }
+            }
+
+            // Add mod entry if it doesn't exist
+            string modKey = $"game:tabname-{_modId}";
+            if (!langEntries.ContainsKey(modKey))
+            {
+                langEntries[modKey] = _modName;
             }
 
             // Remove old entry

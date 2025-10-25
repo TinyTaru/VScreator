@@ -421,7 +421,7 @@ public partial class ItemCreationWindow : Window
                         try
                         {
                             langEntries = JsonSerializer.Deserialize<Dictionary<string, string>>(existingContent)
-                                       ?? new Dictionary<string, string>();
+                                        ?? new Dictionary<string, string>();
                         }
                         catch
                         {
@@ -435,6 +435,13 @@ public partial class ItemCreationWindow : Window
                     // If reading fails, start with empty dictionary
                     langEntries = new Dictionary<string, string>();
                 }
+            }
+
+            // Add mod entry if it doesn't exist
+            string modKey = $"game:tabname-{_modId}";
+            if (!langEntries.ContainsKey(modKey))
+            {
+                langEntries[modKey] = _modName;
             }
 
             // Add or update the item entry
@@ -500,6 +507,13 @@ public partial class ItemCreationWindow : Window
                     // If reading fails, start with empty dictionary
                     langEntries = new Dictionary<string, string>();
                 }
+            }
+
+            // Add mod entry if it doesn't exist
+            string modKey = $"game:tabname-{_modId}";
+            if (!langEntries.ContainsKey(modKey))
+            {
+                langEntries[modKey] = _modName;
             }
 
             // Remove old entry
