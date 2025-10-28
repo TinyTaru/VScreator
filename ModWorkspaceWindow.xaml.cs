@@ -546,29 +546,30 @@ public partial class ModWorkspaceWindow : Window
     {
         try
         {
-            // Open file dialog to select PNG file
+            // Ask user for texture type using custom dialog first
+            var textureTypeDialog = new TextureTypeSelectionWindow();
+            var dialogResult = textureTypeDialog.ShowDialog();
+
+            if (dialogResult != true)
+            {
+                return; // User cancelled
+            }
+
+            string selectedTextureType = textureTypeDialog.SelectedTextureType;
+
+            // Open file dialog to select PNG files (multiple selection)
             OpenFileDialog openFileDialog = new OpenFileDialog
             {
-                Title = "Select Texture File",
+                Title = "Select Texture Files",
                 Filter = "PNG Files (*.png)|*.png",
                 CheckFileExists = true,
-                CheckPathExists = true
+                CheckPathExists = true,
+                Multiselect = true
             };
 
             if (openFileDialog.ShowDialog() == true)
             {
-                string selectedFilePath = openFileDialog.FileName;
-
-                // Ask user for texture type using custom dialog
-                var textureTypeDialog = new TextureTypeSelectionWindow();
-                var dialogResult = textureTypeDialog.ShowDialog();
-
-                if (dialogResult != true)
-                {
-                    return; // User cancelled
-                }
-
-                string selectedTextureType = textureTypeDialog.SelectedTextureType;
+                string[] selectedFilePaths = openFileDialog.FileNames;
 
                 // Create folder structure
                 string modDirectory = GetModDirectory();
@@ -588,45 +589,81 @@ public partial class ModWorkspaceWindow : Window
                 // Create directories if they don't exist
                 Directory.CreateDirectory(texturePath);
 
-                // Sanitize filename: remove spaces and convert to lowercase
-                string originalFileName = Path.GetFileName(selectedFilePath);
-                string fileExtension = Path.GetExtension(originalFileName);
-                string fileNameWithoutExt = Path.GetFileNameWithoutExtension(originalFileName);
-                
-                // Remove spaces and convert to lowercase
-                string sanitizedFileName = fileNameWithoutExt.Replace(" ", "").ToLower() + fileExtension.ToLower();
-                
-                string destinationPath = Path.Combine(texturePath, sanitizedFileName);
+                int importedCount = 0;
+                List<string> importedFiles = new List<string>();
+                List<string> sanitizedFiles = new List<string>();
 
-                File.Copy(selectedFilePath, destinationPath, true);
-
-                // Show success message
-                string textureTypeName = selectedTextureType;
-                string message = $"Texture imported successfully!\n\n" +
-                                $"Original: {originalFileName}\n" +
-                                $"Saved as: {sanitizedFileName}\n\n" +
-                                $"Type: {textureTypeName}\n" +
-                                $"Location: {texturePath}\n" +
-                                $"Mod: {_modName}";
-                
-                if (originalFileName != sanitizedFileName)
+                foreach (string selectedFilePath in selectedFilePaths)
                 {
-                    message += "\n\n(Filename was sanitized: spaces removed and converted to lowercase)";
+                    try
+                    {
+                        // Sanitize filename: remove spaces and convert to lowercase
+                        string originalFileName = Path.GetFileName(selectedFilePath);
+                        string fileExtension = Path.GetExtension(originalFileName);
+                        string fileNameWithoutExt = Path.GetFileNameWithoutExtension(originalFileName);
+
+                        // Remove spaces and convert to lowercase
+                        string sanitizedFileName = fileNameWithoutExt.Replace(" ", "").ToLower() + fileExtension.ToLower();
+
+                        string destinationPath = Path.Combine(texturePath, sanitizedFileName);
+
+                        File.Copy(selectedFilePath, destinationPath, true);
+
+                        importedFiles.Add(originalFileName);
+                        sanitizedFiles.Add(sanitizedFileName);
+                        importedCount++;
+                    }
+                    catch (Exception fileEx)
+                    {
+                        MessageBox.Show(
+                            $"Error importing file '{Path.GetFileName(selectedFilePath)}':\n\n{fileEx.Message}",
+                            "Import Error",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Warning);
+                    }
                 }
-                
-                MessageBox.Show(message, "Import Successful", MessageBoxButton.OK, MessageBoxImage.Information);
 
-                // Refresh texture gallery if we're currently in Resources tab
-                if (_currentTab == "Resources")
+                if (importedCount > 0)
                 {
-                    LoadTextures();
+                    // Show success message
+                    string textureTypeName = selectedTextureType;
+                    string message = $"{importedCount} texture(s) imported successfully!\n\n" +
+                                    $"Type: {textureTypeName}\n" +
+                                    $"Location: {texturePath}\n" +
+                                    $"Mod: {_modName}";
+
+                    if (importedCount == 1)
+                    {
+                        message += $"\n\nOriginal: {importedFiles[0]}\nSaved as: {sanitizedFiles[0]}";
+                        if (importedFiles[0] != sanitizedFiles[0])
+                        {
+                            message += "\n\n(Filename was sanitized: spaces removed and converted to lowercase)";
+                        }
+                    }
+                    else
+                    {
+                        message += "\n\nImported files:\n" + string.Join("\n", importedFiles);
+                        bool hasSanitized = importedFiles.Zip(sanitizedFiles, (orig, san) => orig != san).Any(x => x);
+                        if (hasSanitized)
+                        {
+                            message += "\n\n(Some filenames were sanitized: spaces removed and converted to lowercase)";
+                        }
+                    }
+
+                    MessageBox.Show(message, "Import Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                    // Refresh texture gallery if we're currently in Resources tab
+                    if (_currentTab == "Resources")
+                    {
+                        LoadTextures();
+                    }
                 }
             }
         }
         catch (Exception ex)
         {
             MessageBox.Show(
-                $"An error occurred while importing the texture:\n\n{ex.Message}",
+                $"An error occurred while importing textures:\n\n{ex.Message}",
                 "Import Error",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
