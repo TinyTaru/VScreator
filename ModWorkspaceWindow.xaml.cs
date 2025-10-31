@@ -1312,7 +1312,7 @@ public partial class ModWorkspaceWindow : Window
             WorldgenListView.Items.Clear();
 
             string modDirectory = GetModDirectory();
-            string worldgenPath = Path.Combine(modDirectory, "assets", _modId, "worldgen");
+            string worldgenPath = Path.Combine(modDirectory, "assets", _modId, "worldgen", "blockpatches");
 
             if (!Directory.Exists(worldgenPath))
             {
@@ -1684,7 +1684,7 @@ public partial class ModWorkspaceWindow : Window
         try
         {
             string modDirectory = GetModDirectory();
-            string worldgenPath = Path.Combine(modDirectory, "assets", _modId, "worldgen");
+            string worldgenPath = Path.Combine(modDirectory, "assets", _modId, "worldgen", "blockpatches");
             string worldgenFilePath = Path.Combine(worldgenPath, $"{worldgenName}.json");
 
             if (!File.Exists(worldgenFilePath))

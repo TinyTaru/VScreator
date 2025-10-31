@@ -130,7 +130,7 @@ public partial class WorldGenCreationWindow : Window
         {
             string modDirectory = GetModDirectory();
             string assetsPath = Path.Combine(modDirectory, "assets", _modId);
-            string worldGenPath = Path.Combine(assetsPath, "worldgen");
+            string worldGenPath = Path.Combine(assetsPath, "worldgen", "blockpatches");
 
             // Create worldgen directory if it doesn't exist
             Directory.CreateDirectory(worldGenPath);
