@@ -84,10 +84,13 @@
                 <Button x:Name="BlocksTabButton" Content="Blocks"
                         Style="{StaticResource TabButtonStyle}"
                         Click="BlocksTabButton_Click"/>
+                <Button x:Name="CustomTabButton" Content="Custom"
+                        Style="{StaticResource TabButtonStyle}"
+                        Click="CustomTabButton_Click"/>
             </StackPanel>
 
             <!-- Search Bar -->
-            <TextBox x:Name="SearchTextBox" Grid.Row="0" Background="#2f2d2b" Foreground="#ffffff"
+            <TextBox x:Name="SearchTextBox" Grid.Row="1" Background="#2f2d2b" Foreground="#ffffff"
                      BorderBrush="#404040" Margin="0,50,0,10" Padding="8"
                      TextChanged="SearchTextBox_TextChanged"/>
 

@@ -161,7 +161,7 @@ public partial class BlockCreationWindow : Window
             if (sender is TextBox textBox)
             {
                 // Open the item/block selector window
-                var selectorWindow = new ItemBlockSelectorWindow();
+                var selectorWindow = new ItemBlockSelectorWindow(modId: _modId);
                 selectorWindow.ShowDialog();
     
                 // Check if an item was selected (DialogResult is not used)

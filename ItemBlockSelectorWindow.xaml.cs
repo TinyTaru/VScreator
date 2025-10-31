@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -29,17 +30,20 @@ public partial class ItemBlockSelectorWindow : Window
 {
     private ObservableCollection<SelectableItem> _availableItems = new ObservableCollection<SelectableItem>();
     private ObservableCollection<SelectableItem> _availableBlocks = new ObservableCollection<SelectableItem>();
+    private ObservableCollection<SelectableItem> _customItems = new ObservableCollection<SelectableItem>();
     private ObservableCollection<SelectableItem> _filteredItems = new ObservableCollection<SelectableItem>();
     private string _currentTab = "Items";
     private string _searchText = "";
     private SelectableItem? _selectedItem;
     private readonly bool _blocksOnly;
+    private string? _modId;
 
     public SelectableItem? SelectedItem => _selectedItem;
 
-    public ItemBlockSelectorWindow(bool blocksOnly = false)
+    public ItemBlockSelectorWindow(bool blocksOnly = false, string? modId = null)
     {
         _blocksOnly = blocksOnly;
+        _modId = modId;
         InitializeComponent();
 
         if (_blocksOnly)
@@ -67,9 +71,10 @@ public partial class ItemBlockSelectorWindow : Window
                 ? System.Threading.Tasks.Task.CompletedTask
                 : System.Threading.Tasks.Task.Run(() => LoadItems());
             var loadBlocksTask = System.Threading.Tasks.Task.Run(() => LoadBlocks());
+            var loadCustomTask = System.Threading.Tasks.Task.Run(() => LoadCustomItemsAndBlocks());
 
-            // Wait for both to complete
-            await System.Threading.Tasks.Task.WhenAll(loadItemsTask, loadBlocksTask);
+            // Wait for all to complete
+            await System.Threading.Tasks.Task.WhenAll(loadItemsTask, loadBlocksTask, loadCustomTask);
         }
         catch (Exception ex)
         {
@@ -213,9 +218,212 @@ public partial class ItemBlockSelectorWindow : Window
         }
     }
 
+    private void LoadCustomItemsAndBlocks()
+    {
+        _customItems.Clear();
+
+        // If no modId was provided, we can't load custom items
+        if (string.IsNullOrEmpty(_modId))
+        {
+            System.Diagnostics.Debug.WriteLine("No mod ID provided - custom items will not be loaded");
+            return;
+        }
+
+        // Get the mod directory using the standard path structure
+        string exeDirectory = AppDomain.CurrentDomain.BaseDirectory;
+        string modsDirectory = Path.Combine(exeDirectory, "mods");
+        string modDirectory = Path.Combine(modsDirectory, _modId);
+
+        if (!Directory.Exists(modDirectory))
+        {
+            System.Diagnostics.Debug.WriteLine($"Mod directory not found: {modDirectory}");
+            return;
+        }
+
+        string assetsPath = Path.Combine(modDirectory, "assets", _modId);
+
+        // Load custom items
+        string itemsPath = Path.Combine(assetsPath, "itemtypes");
+        System.Diagnostics.Debug.WriteLine($"Looking for custom items in: {itemsPath}");
+
+        if (Directory.Exists(itemsPath))
+        {
+            var itemFiles = Directory.GetFiles(itemsPath, "*.json");
+            System.Diagnostics.Debug.WriteLine($"Found {itemFiles.Length} item files");
+
+            foreach (var file in itemFiles)
+            {
+                try
+                {
+                    string json = File.ReadAllText(file);
+                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    var itemData = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json, options);
+
+                    if (itemData == null)
+                    {
+                        continue;
+                    }
+
+                    // Try to get code field (case-insensitive)
+                    JsonElement codeElement;
+                    bool hasCode = itemData.TryGetValue("code", out codeElement) ||
+                                  itemData.TryGetValue("Code", out codeElement);
+
+                    if (hasCode)
+                    {
+                        string code = codeElement.GetString() ?? "";
+                        string displayName = Path.GetFileNameWithoutExtension(file).Replace("-", " ").Replace("_", " ");
+
+                        // Try to find texture
+                        string texturePath = Path.Combine(assetsPath, "textures", "item", $"{Path.GetFileNameWithoutExtension(file)}.png");
+
+                        var item = new SelectableItem
+                        {
+                            Type = "item",
+                            Code = code,
+                            DisplayName = displayName,
+                            IconPath = texturePath
+                        };
+
+                        if (File.Exists(texturePath))
+                        {
+                            try
+                            {
+                                var bitmap = new BitmapImage();
+                                bitmap.BeginInit();
+                                bitmap.UriSource = new Uri(texturePath, UriKind.Absolute);
+                                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                                bitmap.DecodePixelWidth = 64;
+                                bitmap.DecodePixelHeight = 64;
+                                bitmap.EndInit();
+                                bitmap.Freeze();
+                                item.Icon = bitmap;
+                            }
+                            catch (Exception ex)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"Error loading custom item texture {texturePath}: {ex.Message}");
+                            }
+                        }
+
+                        _customItems.Add(item);
+                        System.Diagnostics.Debug.WriteLine($"Added custom item: {displayName}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error loading custom item {file}: {ex.Message}");
+                }
+            }
+        }
+
+        // Load custom blocks
+        string blocksPath = Path.Combine(assetsPath, "blocktypes");
+        System.Diagnostics.Debug.WriteLine($"Looking for custom blocks in: {blocksPath}");
+
+        if (Directory.Exists(blocksPath))
+        {
+            var blockFiles = Directory.GetFiles(blocksPath, "*.json");
+            System.Diagnostics.Debug.WriteLine($"Found {blockFiles.Length} block files");
+
+            foreach (var file in blockFiles)
+            {
+                try
+                {
+                    string json = File.ReadAllText(file);
+                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    var blockData = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json, options);
+
+                    if (blockData == null)
+                    {
+                        continue;
+                    }
+
+                    // Try to get code field (case-insensitive)
+                    JsonElement codeElement;
+                    bool hasCode = blockData.TryGetValue("code", out codeElement) ||
+                                  blockData.TryGetValue("Code", out codeElement);
+
+                    if (hasCode)
+                    {
+                        string code = codeElement.GetString() ?? "";
+                        string displayName = Path.GetFileNameWithoutExtension(file).Replace("-", " ").Replace("_", " ");
+
+                        // Try to find texture - check multiple possible paths
+                        string baseFileName = Path.GetFileNameWithoutExtension(file);
+                        string texturesBlockPath = Path.Combine(assetsPath, "textures", "block");
+
+                        string? texturePath = null;
+
+                        // Try exact match first
+                        string exactPath = Path.Combine(texturesBlockPath, $"{baseFileName}.png");
+                        if (File.Exists(exactPath))
+                        {
+                            texturePath = exactPath;
+                        }
+                        else
+                        {
+                            // If exact match not found, try to find any PNG in the block textures folder
+                            if (Directory.Exists(texturesBlockPath))
+                            {
+                                var pngFiles = Directory.GetFiles(texturesBlockPath, "*.png");
+                                if (pngFiles.Length > 0)
+                                {
+                                    texturePath = pngFiles[0];
+                                }
+                            }
+                        }
+
+                        var block = new SelectableItem
+                        {
+                            Type = "block",
+                            Code = code,
+                            DisplayName = displayName,
+                            IconPath = texturePath ?? ""
+                        };
+
+                        if (texturePath != null && File.Exists(texturePath))
+                        {
+                            try
+                            {
+                                var bitmap = new BitmapImage();
+                                bitmap.BeginInit();
+                                bitmap.UriSource = new Uri(texturePath, UriKind.Absolute);
+                                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                                bitmap.DecodePixelWidth = 64;
+                                bitmap.DecodePixelHeight = 64;
+                                bitmap.EndInit();
+                                bitmap.Freeze();
+                                block.Icon = bitmap;
+                            }
+                            catch (Exception ex)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"Error loading custom block texture {texturePath}: {ex.Message}");
+                            }
+                        }
+
+                        _customItems.Add(block);
+                        System.Diagnostics.Debug.WriteLine($"Added custom block: {displayName}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error loading custom block {file}: {ex.Message}");
+                }
+            }
+        }
+
+        System.Diagnostics.Debug.WriteLine($"Total custom items loaded: {_customItems.Count}");
+    }
+
     private void DisplayItems()
     {
-        var itemsToDisplay = _currentTab == "Items" ? _availableItems : _availableBlocks;
+        var itemsToDisplay = _currentTab switch
+        {
+            "Items" => _availableItems,
+            "Blocks" => _availableBlocks,
+            "Custom" => _customItems,
+            _ => _availableItems
+        };
 
         // Apply search filter if there's search text
         if (!string.IsNullOrWhiteSpace(_searchText))
@@ -273,6 +481,12 @@ public partial class ItemBlockSelectorWindow : Window
     private void BlocksTabButton_Click(object sender, RoutedEventArgs e)
     {
         _currentTab = "Blocks";
+        DisplayItems();
+    }
+
+    private void CustomTabButton_Click(object sender, RoutedEventArgs e)
+    {
+        _currentTab = "Custom";
         DisplayItems();
     }
 

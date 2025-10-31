@@ -263,7 +263,7 @@ public partial class WorldGenCreationWindow : Window
 
     private void AddBlockButton_Click(object sender, RoutedEventArgs e)
     {
-        var selectorWindow = new ItemBlockSelectorWindow(blocksOnly: true);
+        var selectorWindow = new ItemBlockSelectorWindow(blocksOnly: true, modId: _modId);
 
         selectorWindow.ShowDialog();
 
