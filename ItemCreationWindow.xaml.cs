@@ -162,6 +162,16 @@ public partial class ItemCreationWindow : Window
         // This method is required for the XAML but we don't need to do anything special here
     }
 
+    private void CustomJsonCheckBox_Checked(object sender, RoutedEventArgs e)
+    {
+        CustomJsonGroupBox.Visibility = Visibility.Visible;
+    }
+
+    private void CustomJsonCheckBox_Unchecked(object sender, RoutedEventArgs e)
+    {
+        CustomJsonGroupBox.Visibility = Visibility.Collapsed;
+    }
+
     private void IsFoodCheckBox_Checked(object sender, RoutedEventArgs e)
     {
         FoodPropsGroupBox.Visibility = Visibility.Visible;
@@ -183,6 +193,30 @@ public partial class ItemCreationWindow : Window
             MessageBox.Show("Please fill in all fields (Name, ID, and select a texture and shape).",
                            "Missing Information", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
+        }
+
+        // Validate custom JSON if checkbox is checked
+        if (CustomJsonCheckBox.IsChecked == true)
+        {
+            if (string.IsNullOrWhiteSpace(CustomJsonTextBox.Text))
+            {
+                MessageBox.Show("Please provide custom JSON snippet.",
+                               "Missing Custom JSON", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // Basic JSON validation - wrap in {} since user provides properties
+            try
+            {
+                string wrappedJson = "{" + CustomJsonTextBox.Text.Trim().TrimEnd(',') + "}";
+                System.Text.Json.JsonDocument.Parse(wrappedJson);
+            }
+            catch
+            {
+                MessageBox.Show("Please enter valid JSON properties in the custom snippet field.\n\nExample:\n\"guiTransform\": {\n  \"translation\": {\"x\": 0, \"y\": 0, \"z\": 0},\n  \"rotation\": {\"x\": -89, \"y\": 41, \"z\": 33},\n  \"origin\": {\"x\": 0.48, \"y\": 0, \"z\": 0.38},\n  \"scale\": 1.78\n}",
+                               "Invalid JSON", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
         }
 
         // Validate food properties if item is marked as food
@@ -257,10 +291,60 @@ public partial class ItemCreationWindow : Window
                 };
             }
 
-            string jsonContent = JsonSerializer.Serialize(itemData, new JsonSerializerOptions
+            string jsonContent;
+
+            // If custom JSON snippet is provided, merge it into the item data before serialization
+            if (CustomJsonCheckBox.IsChecked == true && !string.IsNullOrWhiteSpace(CustomJsonTextBox.Text))
             {
-                WriteIndented = true
-            });
+                try
+                {
+                    var customJsonText = CustomJsonTextBox.Text.Trim();
+                    // Parse the custom JSON as properties (user provides properties without outer braces)
+                    var customJson = System.Text.Json.JsonDocument.Parse("{" + customJsonText + "}");
+
+                    // Create a combined JSON object using dictionary approach
+                    var combined = new Dictionary<string, object>();
+
+                    // Add base item properties
+                    combined["Code"] = itemData.Code;
+                    combined["CreativeInventory"] = itemData.CreativeInventory;
+                    combined["Texture"] = itemData.Texture;
+                    combined["Shape"] = itemData.Shape;
+                    if (itemData.NutritionProps != null)
+                    {
+                        combined["NutritionProps"] = itemData.NutritionProps;
+                    }
+
+                    // Add custom properties
+                    foreach (var property in customJson.RootElement.EnumerateObject())
+                    {
+                        combined[property.Name] = property.Value;
+                    }
+
+                    jsonContent = JsonSerializer.Serialize(combined, new JsonSerializerOptions
+                    {
+                        WriteIndented = true
+                    });
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error merging custom JSON: {ex.Message}\n\nUsing base JSON only.",
+                                   "JSON Merge Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+
+                    // Fall back to base serialization
+                    jsonContent = JsonSerializer.Serialize(itemData, new JsonSerializerOptions
+                    {
+                        WriteIndented = true
+                    });
+                }
+            }
+            else
+            {
+                jsonContent = JsonSerializer.Serialize(itemData, new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                });
+            }
 
             string itemFilePath = Path.Combine(itemTypesPath, $"{ItemIdTextBox.Text}.json");
 
@@ -359,6 +443,46 @@ public partial class ItemCreationWindow : Window
             {
                 string shapeName = shapeBase.Substring(5); // Remove "item/" prefix
                 ShapeComboBox.SelectedItem = shapeName;
+            }
+
+            // Set custom JSON if it exists
+            if (!string.IsNullOrWhiteSpace(_existingItemData.CustomJsonSnippet))
+            {
+                CustomJsonCheckBox.IsChecked = true;
+                CustomJsonTextBox.Text = _existingItemData.CustomJsonSnippet;
+            }
+            else
+            {
+                // Try to extract custom properties from the existing item data
+                // This handles the case where an item was created with custom JSON but we're editing it
+                try
+                {
+                    var existingJson = System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(GetModDirectory(), "assets", _modId, "itemtypes", $"{_existingItemData.Code}.json")));
+                    var customProps = new Dictionary<string, object>();
+
+                    // Extract known properties to exclude from custom JSON
+                    var knownProps = new HashSet<string> { "Code", "CreativeInventory", "Texture", "Shape", "NutritionProps" };
+
+                    foreach (var property in existingJson.RootElement.EnumerateObject())
+                    {
+                        if (!knownProps.Contains(property.Name))
+                        {
+                            customProps[property.Name] = property.Value;
+                        }
+                    }
+
+                    if (customProps.Count > 0)
+                    {
+                        CustomJsonCheckBox.IsChecked = true;
+                        // Convert back to JSON string without outer braces for display
+                        var customJsonString = JsonSerializer.Serialize(customProps, new JsonSerializerOptions { WriteIndented = true });
+                        CustomJsonTextBox.Text = customJsonString.TrimStart('{').TrimEnd('}').Trim();
+                    }
+                }
+                catch
+                {
+                    // Ignore errors when trying to extract custom properties
+                }
             }
 
             // Set food properties if they exist
@@ -551,6 +675,7 @@ public class ItemData
     public ItemTexture Texture { get; set; } = new();
     public ItemShape Shape { get; set; } = new();
     public NutritionProps? NutritionProps { get; set; } = null;
+    public string? CustomJsonSnippet { get; set; } = null;
 }
 
 public class CreativeInventory
