@@ -128,18 +128,53 @@
                                     BorderThickness="{TemplateBinding BorderThickness}"
                                     CornerRadius="3">
                                 <Image x:Name="ExportImage" Source="Resources/Export.png"
-                                       Width="48"
-                                       Height="48"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center"
-                                       RenderOptions.BitmapScalingMode="NearestNeighbor"
-                                       RenderOptions.EdgeMode="Aliased"/>
+                                        Width="48"
+                                        Height="48"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        RenderOptions.BitmapScalingMode="NearestNeighbor"
+                                        RenderOptions.EdgeMode="Aliased"/>
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
                                     <Setter Property="Background" Value="#505050"/>
                                     <Setter Property="BorderBrush" Value="#707070"/>
                                     <Setter TargetName="ExportImage" Property="Source" Value="Resources/Export - Hover.png"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+
+                <!-- Mod Properties Button -->
+                <Button x:Name="ModPropertiesButton"
+                        Click="ModPropertiesButton_Click"
+                        Width="40"
+                        Height="40"
+                        Background="#404040"
+                        BorderBrush="#606060"
+                        BorderThickness="1"
+                        ToolTip="Mod Properties"
+                        Margin="0,0,10,0"
+                        Panel.ZIndex="10">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="3">
+                                <Image x:Name="ModPropsImage" Source="Resources/ModProps.png"
+                                        Width="48"
+                                        Height="48"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        RenderOptions.BitmapScalingMode="NearestNeighbor"
+                                        RenderOptions.EdgeMode="Aliased"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#505050"/>
+                                    <Setter Property="BorderBrush" Value="#707070"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -163,12 +198,12 @@
                                     BorderThickness="{TemplateBinding BorderThickness}"
                                     CornerRadius="3">
                                 <Image x:Name="FolderImage" Source="Resources/Open Mod Folder.png"
-                                       Width="48"
-                                       Height="48"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center"
-                                       RenderOptions.BitmapScalingMode="NearestNeighbor"
-                                       RenderOptions.EdgeMode="Aliased"/>
+                                        Width="48"
+                                        Height="48"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        RenderOptions.BitmapScalingMode="NearestNeighbor"
+                                        RenderOptions.EdgeMode="Aliased"/>
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">

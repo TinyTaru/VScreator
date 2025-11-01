@@ -129,6 +129,13 @@ public partial class ModWorkspaceWindow : Window
         LoadRecipes();
     }
 
+    private void ModPropertiesButton_Click(object sender, RoutedEventArgs e)
+    {
+        // Open the mod properties window
+        var modPropertiesWindow = new ModPropertiesWindow(_modId, _modName);
+        modPropertiesWindow.ShowDialog();
+    }
+
     private void SettingsButton_Click(object sender, RoutedEventArgs e)
     {
         MessageBox.Show($"Mod settings will be implemented here.\n\nMod: {_modName}\nID: {_modId}",
