@@ -195,6 +195,16 @@
                              Height="150" FontFamily="Consolas" FontSize="12"/>
                 </GroupBox>
 
+                <!-- Seed Item Section -->
+                <CheckBox x:Name="IsSeedItemCheckBox" Content="Seed Item"
+                          Foreground="#ffffff" Margin="0,20,0,10"
+                          Checked="IsSeedItemCheckBox_Checked" Unchecked="IsSeedItemCheckBox_Unchecked"/>
+
+                <StackPanel x:Name="SeedItemOptionsPanel" Visibility="Collapsed" Margin="0,0,0,10">
+                    <TextBlock Text="Crop:" Style="{StaticResource ItemLabelStyle}" Margin="0,5,0,5"/>
+                    <ComboBox x:Name="CropComboBox" Style="{StaticResource ItemComboBoxStyle}"/>
+                </StackPanel>
+
                 <!-- Food Item Section -->
                 <CheckBox x:Name="IsFoodCheckBox" Content="Is Item Food?"
                           Foreground="#ffffff" Margin="0,20,0,10" Checked="IsFoodCheckBox_Checked" Unchecked="IsFoodCheckBox_Unchecked"/>

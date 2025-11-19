@@ -16,6 +16,9 @@ public partial class ItemCreationWindow : Window
     private string _existingItemName = "";
     private Action? _refreshCallback = null;
 
+    // Holds loaded crop codes for the Seed Item dropdown
+    private readonly List<string> _availableCropCodes = [];
+
     public ItemCreationWindow(string modId, string modName)
     {
         InitializeComponent();
@@ -25,6 +28,9 @@ public partial class ItemCreationWindow : Window
         // Load available item textures and shapes
         LoadItemTextures();
         LoadItemShapes();
+
+        // Load crops for Seed Item dropdown
+        LoadCropCodesForSeedItems();
     }
 
     // Constructor for creating new items with refresh callback
@@ -38,6 +44,9 @@ public partial class ItemCreationWindow : Window
         // Load available item textures and shapes
         LoadItemTextures();
         LoadItemShapes();
+
+        // Load crops for Seed Item dropdown
+        LoadCropCodesForSeedItems();
     }
 
     // Constructor for editing existing items
@@ -52,6 +61,9 @@ public partial class ItemCreationWindow : Window
         // Load available item textures and shapes
         LoadItemTextures();
         LoadItemShapes();
+
+        // Load crops for Seed Item dropdown
+        LoadCropCodesForSeedItems();
 
         // Pre-fill the form with existing item data
         PreFillFormWithExistingData();
@@ -70,6 +82,9 @@ public partial class ItemCreationWindow : Window
         // Load available item textures and shapes
         LoadItemTextures();
         LoadItemShapes();
+
+        // Load crops for Seed Item dropdown
+        LoadCropCodesForSeedItems();
 
         // Pre-fill the form with existing item data
         PreFillFormWithExistingData();
@@ -145,6 +160,71 @@ public partial class ItemCreationWindow : Window
         }
     }
 
+    private void LoadCropCodesForSeedItems()
+    {
+        try
+        {
+            string modDirectory = GetModDirectory();
+            string cropsDir = Path.Combine(modDirectory, "assets", _modId, "blocktypes", "plant", "crop");
+
+            if (!Directory.Exists(cropsDir))
+            {
+                return;
+            }
+
+            var jsonFiles = Directory.GetFiles(cropsDir, "*.json", SearchOption.TopDirectoryOnly);
+
+            foreach (var file in jsonFiles)
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(File.ReadAllText(file));
+                    if (!doc.RootElement.TryGetProperty("code", out var codeProp))
+                    {
+                        continue;
+                    }
+
+                    var rawCode = codeProp.GetString();
+                    if (string.IsNullOrWhiteSpace(rawCode))
+                    {
+                        continue;
+                    }
+
+                    // Normalize: strip "crop-" prefix for display / selection
+                    var normalized = rawCode.StartsWith("crop-")
+                        ? rawCode.Substring("crop-".Length)
+                        : rawCode;
+
+                    if (!_availableCropCodes.Contains(normalized))
+                    {
+                        _availableCropCodes.Add(normalized);
+                    }
+                }
+                catch
+                {
+                    // Ignore malformed crop files, continue loading others
+                }
+            }
+
+            _availableCropCodes.Sort(StringComparer.OrdinalIgnoreCase);
+
+            // Populate the ComboBox if it exists (XAML-defined)
+            if (CropComboBox != null)
+            {
+                CropComboBox.Items.Clear();
+                foreach (var code in _availableCropCodes)
+                {
+                    // Display as normalized id, but we know we'll prefix with "crop-" in JSON
+                    CropComboBox.Items.Add(code);
+                }
+            }
+        }
+        catch
+        {
+            // Silent failure; Seed UI will simply be empty
+        }
+    }
+
     private string GetModDirectory()
     {
         string exeDirectory = AppDomain.CurrentDomain.BaseDirectory;
@@ -170,6 +250,22 @@ public partial class ItemCreationWindow : Window
     private void CustomJsonCheckBox_Unchecked(object sender, RoutedEventArgs e)
     {
         CustomJsonGroupBox.Visibility = Visibility.Collapsed;
+    }
+
+    private void IsSeedItemCheckBox_Checked(object sender, RoutedEventArgs e)
+    {
+        SeedItemOptionsPanel.Visibility = Visibility.Visible;
+
+        // Auto-select first crop if available and nothing selected
+        if (CropComboBox != null && CropComboBox.SelectedItem == null && _availableCropCodes.Count > 0)
+        {
+            CropComboBox.SelectedIndex = 0;
+        }
+    }
+
+    private void IsSeedItemCheckBox_Unchecked(object sender, RoutedEventArgs e)
+    {
+        SeedItemOptionsPanel.Visibility = Visibility.Collapsed;
     }
 
     private void IsFoodCheckBox_Checked(object sender, RoutedEventArgs e)
@@ -260,13 +356,66 @@ public partial class ItemCreationWindow : Window
                 },
                 Texture = new ItemTexture
                 {
-                    Base = $"item/{TextureComboBox.SelectedItem.ToString()}"
+                    Base = $"item/{TextureComboBox.SelectedItem}"
                 },
                 Shape = new ItemShape
                 {
-                    Base = $"item/{ShapeComboBox.SelectedItem.ToString()}"
+                    Base = $"item/{ShapeComboBox.SelectedItem}"
                 }
             };
+
+            // If Seed Item is selected, override to ItemSeeds with cropProps
+            if (IsSeedItemCheckBox.IsChecked == true)
+            {
+                if (CropComboBox.SelectedItem == null)
+                {
+                    MessageBox.Show("Please select a crop for the Seed Item.", "Missing Crop", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                var selectedCropId = CropComboBox.SelectedItem.ToString() ?? "";
+                if (string.IsNullOrWhiteSpace(selectedCropId))
+                {
+                    MessageBox.Show("Invalid crop selection.", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                // Build seed-style code: seed-{cropId}
+                var seedCode = $"seed-{selectedCropId}";
+
+                // Try to infer growthStages from crop JSON if available, default to 5
+                int growthStages = 5;
+                try
+                {
+                    string cropsDir = Path.Combine(modDirectory, "assets", _modId, "blocktypes", "plant", "crop");
+                    // Crop file name is the raw id without crop- prefix based on CropCreationWindow behavior
+                    string cropJsonPath = Path.Combine(cropsDir, $"{selectedCropId}.json");
+                    if (File.Exists(cropJsonPath))
+                    {
+                        using var doc = JsonDocument.Parse(File.ReadAllText(cropJsonPath));
+                        if (doc.RootElement.TryGetProperty("cropProps", out var cropPropsElem) &&
+                            cropPropsElem.TryGetProperty("growthStages", out var gsProp) &&
+                            gsProp.TryGetInt32(out var gsVal) &&
+                            gsVal > 0)
+                        {
+                            growthStages = gsVal;
+                        }
+                    }
+                }
+                catch
+                {
+                    // Fallback to default growthStages = 5
+                }
+
+                // Replace base itemData with seed-specific values while keeping texture/shape as selected
+                itemData.Code = seedCode;
+                itemData.Class = "ItemPlantableSeed";
+                itemData.CropProps = new SeedCropProps
+                {
+                    CropBlockCodePrefix = $"crop-{selectedCropId}-",
+                    GrowthStages = growthStages
+                };
+            }
 
             // Add nutrition properties if item is marked as food
             if (IsFoodCheckBox.IsChecked == true)
@@ -394,13 +543,20 @@ public partial class ItemCreationWindow : Window
                 foodInfo = $"\nFood Category: {foodCategoryDisplay}\n" +
                           $"Satiety: {SatietyTextBox.Text}\n" +
                           $"Health: {HealthTextBox.Text}";
-            }
+           }
+
+           string seedInfo = "";
+           if (IsSeedItemCheckBox.IsChecked == true && CropComboBox.SelectedItem != null)
+           {
+               seedInfo = $"\nSeed for crop: {CropComboBox.SelectedItem}";
+           }
 
             MessageBox.Show($"Item '{ItemNameTextBox.Text}' has been {action} successfully!\n\n" +
                            $"ID: {ItemIdTextBox.Text}\n" +
                            $"Texture: {TextureComboBox.SelectedItem}\n" +
                            $"Shape: {ShapeComboBox.SelectedItem}" +
-                           foodInfo + $"\n" +
+                           foodInfo +
+                           seedInfo + $"\n" +
                            $"Location: {itemFilePath}",
                            $"Item {action}", MessageBoxButton.OK, MessageBoxImage.Information);
 
@@ -671,10 +827,12 @@ public partial class ItemCreationWindow : Window
 public class ItemData
 {
     public string Code { get; set; } = "";
+    public string? Class { get; set; } = null; // e.g. "ItemPlantableSeed"
     public CreativeInventory CreativeInventory { get; set; } = new();
     public ItemTexture Texture { get; set; } = new();
     public ItemShape Shape { get; set; } = new();
     public NutritionProps? NutritionProps { get; set; } = null;
+    public SeedCropProps? CropProps { get; set; } = null; // For Seed Items
     public string? CustomJsonSnippet { get; set; } = null;
 }
 
@@ -708,4 +866,11 @@ public class Nutrition
     public double Protein { get; set; }
     public double Grain { get; set; }
     public double Dairy { get; set; }
+}
+
+public class SeedCropProps
+{
+    // Matches example: "cropProps": { "cropBlockCodePrefix": "crop-glowberrybush-", "growthStages": 5 }
+    public string CropBlockCodePrefix { get; set; } = "";
+    public int GrowthStages { get; set; }
 }

@@ -94,7 +94,7 @@ public partial class ModPropertiesWindow : Window
         // Create or update modinfo.json
         var modInfo = new
         {
-            type = "mod",
+            type = "content",
             modid = _modId,
             name = _modName,
             version = version,
