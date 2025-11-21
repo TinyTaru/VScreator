@@ -133,9 +133,9 @@ public partial class CropCreationWindow : Window
             return;
         }
 
-        if (!double.TryParse(GrowthMonthsTextBox.Text, out double growthMonths))
+        if (!double.TryParse(GrowthMonthsTextBox.Text, out double growthDays))
         {
-            MessageBox.Show("Please enter a valid number for growth months.",
+            MessageBox.Show("Please enter a valid number for growth days.",
                            "Invalid Input", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
@@ -264,7 +264,7 @@ public partial class CropCreationWindow : Window
                 requiredNutrient = RequiredNutrientComboBox.Text,
                 nutrientConsumption = nutrientConsumption,
                 growthStages = states.Length,
-                totalGrowthMonths = growthMonths,
+                totalGrowthDays = growthDays,
                 coldDamageBelow = coldDamage,
                 damageGrowthStuntMul = 0.75,
                 coldDamageRipeMul = 0.5,
@@ -276,11 +276,19 @@ public partial class CropCreationWindow : Window
             var cropData = new CropData
             {
                 code = $"crop-{CropIdTextBox.Text}",
+                @class = "BlockCrop",
                 variantgroups = variantGroups,
                 shapeByType = shapeByType,
                 texturesByType = texturesByType,
                 dropsByType = dropsByType,
-                cropProps = cropProps
+                cropProps = cropProps,
+                attributes = new CropAttributes
+                {
+                    tickGrowthProbability = 0.33,
+                    growthBlockLayer = "l1soilwithgrass",
+                    beeFeed = true,
+                    butterflyFeed = true
+                }
             };
 
             string jsonContent = JsonSerializer.Serialize(cropData, new JsonSerializerOptions
@@ -544,7 +552,7 @@ public partial class CropCreationWindow : Window
             {
                 RequiredNutrientComboBox.Text = _existingCropData.cropProps.requiredNutrient;
                 NutrientConsumptionTextBox.Text = _existingCropData.cropProps.nutrientConsumption.ToString();
-                GrowthMonthsTextBox.Text = _existingCropData.cropProps.totalGrowthMonths.ToString();
+                GrowthMonthsTextBox.Text = _existingCropData.cropProps.totalGrowthDays.ToString();
                 ColdDamageTextBox.Text = _existingCropData.cropProps.coldDamageBelow.ToString();
                 HeatDamageTextBox.Text = _existingCropData.cropProps.heatDamageAbove.ToString();
                 MultipleHarvestsCheckBox.IsChecked = _existingCropData.cropProps.multipleHarvests;
@@ -711,11 +719,13 @@ public partial class CropCreationWindow : Window
 public class CropData
 {
     public string code { get; set; } = "";
+    public string @class { get; set; } = "BlockCrop";
     public VariantGroup[] variantgroups { get; set; } = Array.Empty<VariantGroup>();
     public Dictionary<string, ShapeData> shapeByType { get; set; } = new();
     public Dictionary<string, Dictionary<string, TextureData>> texturesByType { get; set; } = new();
     public Dictionary<string, List<CropDrop>> dropsByType { get; set; } = new();
     public CropProps? cropProps { get; set; }
+    public CropAttributes? attributes { get; set; }
 }
 
 public class VariantGroup
@@ -752,10 +762,18 @@ public class CropProps
     public string requiredNutrient { get; set; } = "";
     public int nutrientConsumption { get; set; }
     public int growthStages { get; set; }
-    public double totalGrowthMonths { get; set; }
+    public double totalGrowthDays { get; set; }
     public int coldDamageBelow { get; set; }
     public double damageGrowthStuntMul { get; set; }
     public double coldDamageRipeMul { get; set; }
     public int heatDamageAbove { get; set; }
     public bool multipleHarvests { get; set; }
+}
+
+public class CropAttributes
+{
+    public double tickGrowthProbability { get; set; }
+    public string growthBlockLayer { get; set; } = "";
+    public bool beeFeed { get; set; }
+    public bool butterflyFeed { get; set; }
 }

@@ -252,7 +252,7 @@
                 <TextBox x:Name="NutrientConsumptionTextBox" Style="{StaticResource CropInputTextBoxStyle}"
                          Text="40"/>
 
-                <TextBlock Text="Total Growth Months:" Style="{StaticResource CropLabelStyle}"/>
+                <TextBlock Text="Total Growth Days:" Style="{StaticResource CropLabelStyle}"/>
                 <TextBox x:Name="GrowthMonthsTextBox" Style="{StaticResource CropInputTextBoxStyle}"
                          Text="2.0"/>
 

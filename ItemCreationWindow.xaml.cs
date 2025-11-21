@@ -827,7 +827,7 @@ public partial class ItemCreationWindow : Window
 public class ItemData
 {
     public string Code { get; set; } = "";
-    public string? Class { get; set; } = null; // e.g. "ItemPlantableSeed"
+    public string Class { get; set; } = "Item"; // e.g. "ItemPlantableSeed"
     public CreativeInventory CreativeInventory { get; set; } = new();
     public ItemTexture Texture { get; set; } = new();
     public ItemShape Shape { get; set; } = new();
