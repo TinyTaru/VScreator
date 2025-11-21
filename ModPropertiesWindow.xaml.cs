@@ -1,6 +1,9 @@
+using System;
 using System.IO;
 using System.Text.Json;
 using System.Windows;
+using Microsoft.Win32;
+using System.Windows.Media.Imaging;
 
 namespace VScreator;
 
@@ -23,6 +26,9 @@ public partial class ModPropertiesWindow : Window
 
         // Load current version
         LoadCurrentVersion();
+
+        // Load current mod icon
+        LoadModIcon();
     }
 
     private void LoadCurrentVersion()
@@ -48,6 +54,36 @@ public partial class ModPropertiesWindow : Window
         catch (Exception ex)
         {
             MessageBox.Show($"Error loading current version: {ex.Message}", "Load Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void LoadModIcon()
+    {
+        try
+        {
+            string modDirectory = GetModDirectory();
+            string iconPath = Path.Combine(modDirectory, "modicon.png");
+
+            if (File.Exists(iconPath))
+            {
+                var bitmap = new BitmapImage();
+                bitmap.BeginInit();
+                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                bitmap.CreateOptions = BitmapCreateOptions.IgnoreImageCache;
+                bitmap.UriSource = new Uri(iconPath, UriKind.Absolute);
+                bitmap.EndInit();
+                bitmap.Freeze();
+
+                ModIconImage.Source = bitmap;
+            }
+            else
+            {
+                ModIconImage.Source = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading mod icon: {ex.Message}", "Load Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -106,6 +142,54 @@ public partial class ModPropertiesWindow : Window
 
         string jsonContent = JsonSerializer.Serialize(modInfo, new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText(modInfoPath, jsonContent);
+    }
+
+    private void ModIconBorder_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        try
+        {
+            var openFileDialog = new OpenFileDialog
+            {
+                Title = "Select Mod Icon",
+                Filter = "PNG Files (*.png)|*.png",
+                CheckFileExists = true,
+                CheckPathExists = true,
+                Multiselect = false
+            };
+
+            bool? result = openFileDialog.ShowDialog(this);
+            if (result != true)
+            {
+                return;
+            }
+
+            string selectedFilePath = openFileDialog.FileName;
+            string modDirectory = GetModDirectory();
+            Directory.CreateDirectory(modDirectory);
+            string iconPath = Path.Combine(modDirectory, "modicon.png");
+
+            try
+            {
+                if (File.Exists(iconPath))
+                {
+                    File.Delete(iconPath);
+                }
+
+                File.Copy(selectedFilePath, iconPath, overwrite: false);
+
+                LoadModIcon();
+
+                MessageBox.Show("Mod icon updated successfully.", "Icon Updated", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error updating mod icon: {ex.Message}", "Icon Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error selecting mod icon: {ex.Message}", "Icon Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void CancelButton_Click(object sender, RoutedEventArgs e)

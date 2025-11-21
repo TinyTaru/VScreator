@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:VScreator"
         mc:Ignorable="d"
-        Title="Mod Properties" Height="300" Width="400"
+        Title="Mod Properties" Height="325" Width="400"
         WindowStartupLocation="CenterScreen"
         Background="#1f1d1b"
         ResizeMode="NoResize">
@@ -84,6 +84,26 @@
             <TextBox x:Name="VersionTextBox"
                      Style="{StaticResource TextBoxStyle}"
                      Text="1.0.0"/>
+
+            <TextBlock Text="Mod Icon:"
+                       Style="{StaticResource LabelStyle}"/>
+
+            <Border x:Name="ModIconBorder"
+                    Width="64"
+                    Height="64"
+                    Background="#2f2d2b"
+                    BorderBrush="#5a5f3a"
+                    BorderThickness="1"
+                    Margin="0,0,0,15"
+                    HorizontalAlignment="Left"
+                    Cursor="Hand"
+                    MouseLeftButtonUp="ModIconBorder_MouseLeftButtonUp">
+                <Image x:Name="ModIconImage"
+                       Width="64"
+                       Height="64"
+                       Stretch="Uniform"
+                       RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+            </Border>
         </StackPanel>
 
         <!-- Buttons -->
